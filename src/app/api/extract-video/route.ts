@@ -26,12 +26,12 @@ export async function GET(request: Request) {
   baseDomain = baseDomain.replace('.xyz', '.best').replace(/\/$/, '');
   const playUrl = `${baseDomain}/video_player?player_token=${token}`;
 
-  // 3. DIRECT PUPPETEER PATH (Priority)
+  // 3. DIRECT PUPPETEER SNIFFER (Priority)
   const isVercel = process.env.VERCEL === '1';
   let browser;
   try {
     const launchOptions = isVercel ? {
-      args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox'],
+      args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--disable-web-security'],
       executablePath: await chromium.executablePath(),
       headless: chromium.headless,
     } : {
@@ -42,48 +42,63 @@ export async function GET(request: Request) {
     browser = await puppeteer.launch(launchOptions as any);
     const page = await browser.newPage();
     
-    // Aggressive optimization: block everything except scripts and document
+    let caughtStream: string | null = null;
+    let caughtQuality: string = 'Auto';
+
     await page.setRequestInterception(true);
     page.on('request', (req) => {
-      const type = req.resourceType();
-      if (['image', 'font', 'media', 'stylesheet', 'other'].includes(type) || req.url().includes('google-analytics') || req.url().includes('ads')) {
+      const url = req.url();
+      // Sniff for manifest or stream files
+      if (url.includes('.m3u8') || url.includes('.mp4') || url.includes('/playlist.m3u8')) {
+        caughtStream = url;
+        // Try to guess quality from URL if possible
+        if (url.includes('1080')) caughtQuality = '1080p';
+        else if (url.includes('720')) caughtQuality = '720p';
+        else if (url.includes('480')) caughtQuality = '480p';
+        req.continue();
+      } else if (['image', 'font', 'media'].includes(req.resourceType())) {
         req.abort();
       } else {
         req.continue();
       }
     });
 
-    // Go to player and wait for the buttons to appear
-    await page.goto(playUrl, { waitUntil: 'domcontentloaded', timeout: 7000 });
+    // Strategy: Stop as soon as we catch a stream OR reach 8.5s
+    const navigationPromise = page.goto(playUrl, { waitUntil: 'domcontentloaded', timeout: 8000 }).catch(() => {});
     
-    // Extract both data-url buttons and any m3u8 in scripts
-    const results = await page.evaluate(() => {
-      const streams: any[] = [];
-      // Catch buttons
-      document.querySelectorAll('.hd_btn').forEach(btn => {
-        const url = btn.getAttribute('data-url');
-        if (url) streams.push({ quality: btn.textContent?.trim() || 'Auto', url });
-      });
-      // Fallback: look for m3u8 in scripts if no buttons
-      if (streams.length === 0) {
-        const html = document.documentElement.innerHTML;
-        const matches = html.matchAll(/["'](https?:\/\/[^"']+\.m3u8[^"']*)["']/g);
-        for (const m of matches) streams.push({ quality: 'HD', url: m[1] });
-      }
-      return streams;
-    });
+    // Polling for the caught stream to speed up response
+    for (let i = 0; i < 40; i++) {
+        if (caughtStream) break;
+        await new Promise(r => setTimeout(r, 200));
+    }
+
+    if (!caughtStream) {
+        // Final check for buttons if sniffing didn't work immediately
+        const buttons = await page.evaluate(() => {
+           return Array.from(document.querySelectorAll('.hd_btn')).map(btn => ({
+             quality: btn.textContent?.trim() || 'HD',
+             url: btn.getAttribute('data-url')
+           })).filter(x => x.url);
+        }).catch(() => []);
+
+        if (buttons.length > 0) {
+            await browser.close();
+            cache.set(token, { streams: buttons, expiry: Date.now() + 600000 });
+            return NextResponse.json({ streams: buttons });
+        }
+    }
 
     await browser.close();
 
-    if (results.length > 0) {
-      const unique = results.filter((v, i, a) => a.findIndex(t => t.url === v.url) === i);
-      cache.set(token, { streams: unique, expiry: Date.now() + 600000 });
-      return NextResponse.json({ streams: unique });
+    if (caughtStream) {
+      const result = [{ quality: caughtQuality, url: caughtStream }];
+      cache.set(token, { streams: result, expiry: Date.now() + 600000 });
+      return NextResponse.json({ streams: result });
     }
   } catch (err) {
     if (browser) await browser.close();
-    console.error('Puppeteer Error:', err);
+    console.error('Sniffer Error:', err);
   }
 
-  return NextResponse.json({ streams: [], error: 'Timeout or Extraction Failed' }, { status: 200 });
+  return NextResponse.json({ streams: [], error: 'Timeout or Empty Results' }, { status: 200 });
 }
