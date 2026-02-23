@@ -15,136 +15,96 @@ export async function GET(request: Request) {
   const token = searchParams.get('token');
   const domainParam = searchParams.get('domain');
   
-  if (!token) {
-    return NextResponse.json({ streams: [], error: 'Missing token parameter' }, { status: 400 });
-  }
+  if (!token) return NextResponse.json({ streams: [], error: 'Missing token' }, { status: 400 });
 
   // 1. Check Cache
   const cached = cache.get(token);
-  if (cached && cached.expiry > Date.now()) {
-    return NextResponse.json({ streams: cached.streams });
-  }
+  if (cached && cached.expiry > Date.now()) return NextResponse.json({ streams: cached.streams });
 
-  // 2. Normalize Domain to avoid redirects (Crucial for Vercel speed)
+  // 2. Direct Domain Strategy (Best for Vercel speed)
   let baseDomain = domainParam || await getBaseUrl();
-  // User confirmed .xyz redirects to .best, so we jump straight to .best to save 2-3 seconds of redirect lag
-  if (baseDomain.includes('.faselhdx.xyz')) {
-    baseDomain = baseDomain.replace('.faselhdx.xyz', '.faselhdx.best');
-  }
-  const playUrl = `${baseDomain.replace(/\/$/, '')}/video_player?player_token=${token}`;
+  // Always use .best to avoid the redirect lag
+  baseDomain = baseDomain.replace('.xyz', '.best').replace(/\/$/, '');
+  
+  const playUrl = `${baseDomain}/video_player?player_token=${token}`;
 
-  // Helper to check if we are running out of time (Vercel limit is 10s)
-  const getRemainingTime = () => 9000 - (Date.now() - startTime);
-
-  // 3. FAST PATH (REGEX) - Timeout based on remaining time
+  // 3. AGGRESSIVE FAST PATH (Regex is king on Vercel)
   try {
-    const fastTimeout = Math.min(getRemainingTime(), 5000); 
-    if (fastTimeout > 1000) {
-      const controller = new AbortController();
-      const id = setTimeout(() => controller.abort(), fastTimeout);
+    const res = await fetch(playUrl, {
+      headers: { 
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        'Referer': baseDomain,
+      },
+      next: { revalidate: 0 }
+    });
+
+    if (res.ok) {
+      const html = await res.text();
+      const streams: {quality: string, url: string}[] = [];
       
-      const res = await fetch(playUrl, {
-        headers: { 
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-          'Referer': baseDomain,
-        },
-        signal: controller.signal,
-        cache: 'no-store'
-      });
-      clearTimeout(id);
+      // Pattern 1: hd_btn with data-url
+      const btnRegex = /class="hd_btn"[^>]*data-url="(.*?)"[^>]*>(.*?)<\/button>/g;
+      let m; while ((m = btnRegex.exec(html)) !== null) if (m[1]) streams.push({ quality: m[2].trim() || 'Auto', url: m[1] });
 
-      if (res.ok) {
-        const html = await res.text();
-        const streams: {quality: string, url: string}[] = [];
-        
-        // Pattern 1: hd_btn buttons
-        const btnRegex = /class="hd_btn"[^>]*data-url="(.*?)"[^>]*>(.*?)<\/button>/g;
-        let match;
-        while ((match = btnRegex.exec(html)) !== null) {
-          if (match[1]) streams.push({ quality: match[2].trim() || 'Auto', url: match[1] });
-        }
+      // Pattern 2: JWPlayer Sources (label/file)
+      const jwRegex = /file\s*:\s*["'](https?:\/\/[^"']+\.m3u8[^"']*)["']\s*,\s*label\s*:\s*["']([^"']+)["']/g;
+      let jm; while ((jm = jwRegex.exec(html)) !== null) streams.push({ quality: jm[2] || 'Auto', url: jm[1] });
 
-        // Pattern 2: JWPlayer configs
-        const jwRegex = /file\s*:\s*["'](https?:\/\/[^"']+\.m3u8[^"']*)["']\s*,\s*label\s*:\s*["']([^"']+)["']/g;
-        let jwMatch;
-        while ((jwMatch = jwRegex.exec(html)) !== null) {
-            streams.push({ quality: jwMatch[2] || 'Auto', url: jwMatch[1] });
-        }
+      // Pattern 3: Simple sources array
+      const srcRegex = /sources\s*:\s*\[\s*\{\s*file\s*:\s*["'](.*?)["']\s*,\s*label\s*:\s*["'](.*?)["']/g;
+      let sm; while ((sm = srcRegex.exec(html)) !== null) streams.push({ quality: sm[2] || 'Auto', url: sm[1] });
 
-        if (streams.length > 0) {
-          const unique = streams.filter((v, i, a) => a.findIndex(t => t.url === v.url) === i);
-          cache.set(token, { streams: unique, expiry: Date.now() + 600000 });
-          return NextResponse.json({ streams: unique });
-        }
+      if (streams.length > 0) {
+        const unique = streams.filter((v, i, a) => a.findIndex(t => t.url === v.url) === i);
+        cache.set(token, { streams: unique, expiry: Date.now() + 600000 });
+        return NextResponse.json({ streams: unique });
       }
     }
   } catch (e) {
-    console.warn('[extract-video] Fast Path skipped/failed');
+    console.warn('Fast path failed');
   }
 
-  // 4. SLOW PATH (PUPPETEER)
+  // 4. LAST CHANCE: PUPPETEER (Only if time allows < 8s)
   const isVercel = process.env.VERCEL === '1';
-  const isRailway = !!process.env.RAILWAY_ENVIRONMENT;
-  const remaining = isRailway ? 30000 : getRemainingTime(); // Railway gets 30s+
-  
-  if (remaining > 4000) {
+  if ((Date.now() - startTime) < 5000) {
     let browser;
     try {
-      let launchOptions;
-      if (isVercel) {
-        launchOptions = {
-          args: chromium.args,
-          defaultViewport: chromium.defaultViewport,
-          executablePath: await chromium.executablePath(),
-          headless: chromium.headless,
-        };
-      } else if (isRailway) {
-        launchOptions = {
-          args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
-          executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome',
-          headless: true
-        };
-      } else {
-        // Local Windows
-        launchOptions = {
-          executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-          headless: true
-        };
-      }
+      const launchOptions = isVercel ? {
+        args: chromium.args,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+      } : {
+        executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+        headless: true
+      };
 
       browser = await puppeteer.launch(launchOptions as any);
       const page = await browser.newPage();
-      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36');
-      
       await page.setRequestInterception(true);
       page.on('request', (req) => {
         if (['image', 'font', 'media', 'stylesheet'].includes(req.resourceType())) req.abort();
         else req.continue();
       });
 
-      // Very tight timeout for the page load
-      await page.goto(playUrl, { waitUntil: 'domcontentloaded', timeout: Math.min(remaining - 2000, 4000) });
+      await page.goto(playUrl, { waitUntil: 'domcontentloaded', timeout: 4000 });
       const results = await page.evaluate(() => {
-        const items: any[] = [];
-        document.querySelectorAll('.hd_btn').forEach(btn => {
-          const url = btn.getAttribute('data-url');
-          if (url) items.push({ quality: btn.textContent?.trim() || 'Auto', url });
-        });
-        return items;
+        return Array.from(document.querySelectorAll('.hd_btn')).map(btn => ({
+          quality: btn.textContent?.trim() || 'Auto',
+          url: btn.getAttribute('data-url')
+        })).filter(x => x.url);
       });
 
       await browser.close();
       if (results.length > 0) {
-        const unique = results.filter((v, i, a) => a.findIndex(t => t.url === v.url) === i);
-        cache.set(token, { streams: unique, expiry: Date.now() + 600000 });
-        return NextResponse.json({ streams: unique });
+        cache.set(token, { streams: results, expiry: Date.now() + 600000 });
+        return NextResponse.json({ streams: results });
       }
-    } catch (error) {
+    } catch (err) {
       if (browser) await browser.close();
     }
   }
 
-  // Final generic error instead of letting Vercel timeout
-  return NextResponse.json({ streams: [], error: 'تعذر الاستخراج ضمن الوقت المسموح' }, { status: 504 });
+  // If we reach here, we are very close to Vercel's limit. 
+  // Return empty instead of 504 to let the player UI handle it.
+  return NextResponse.json({ streams: [], error: 'Timeout' }, { status: 200 });
 }
