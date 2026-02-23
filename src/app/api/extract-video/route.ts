@@ -101,39 +101,39 @@ export async function GET(request: Request) {
     });
 
     // Use domcontentloaded for speed
-    await page.goto(playUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
+    console.log('[extract-video] Navigating to:', playUrl);
+    await page.goto(playUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
 
     // Wait for the hd_btn buttons or a short timeout
-    await page.waitForSelector('.hd_btn', { timeout: 3000 }).catch(() => {});
+    console.log('[extract-video] Waiting for .hd_btn...');
+    await page.waitForSelector('.hd_btn', { timeout: 8000 }).catch(e => {
+        console.warn('[extract-video] Selector .hd_btn not found within 8s');
+    });
 
     // Extract stream URLs from buttons
     const streams = await page.evaluate(() => {
-      const buttons = document.querySelectorAll('.hd_btn');
       const results: {quality: string, url: string}[] = [];
-      buttons.forEach((btn) => {
-        const quality = btn.textContent?.trim() || 'Auto';
-        const url = btn.getAttribute('data-url');
-        if (url) {
-          results.push({ quality, url });
-        }
-      });
+      try {
+        const buttons = document.querySelectorAll('.hd_btn');
+        buttons.forEach((btn) => {
+            const quality = btn.textContent?.trim() || 'Auto';
+            const url = btn.getAttribute('data-url');
+            if (url) results.push({ quality, url });
+        });
 
-      if (results.length === 0) {
-        try {
-          // @ts-expect-error jwplayer is global
-          const player = window.jwplayer?.('player');
-          if (player) {
-            const item = player.getPlaylistItem?.();
-            const sources = player.getPlaylist?.()?.[0]?.sources;
-            if (sources?.length) {
-              sources.forEach((s: any) => results.push({ quality: s.label || 'Auto', url: s.file }));
-            } else if (item?.file) {
-              results.push({ quality: 'Auto', url: item.file });
+        if (results.length === 0) {
+            // @ts-expect-error jwplayer
+            const player = window.jwplayer?.('player');
+            if (player) {
+                const sources = player.getPlaylist?.()?.[0]?.sources;
+                if (sources?.length) {
+                    sources.forEach((s: any) => results.push({ quality: s.label || 'Auto', url: s.file }));
+                }
             }
-          }
-        } catch {}
+        }
+      } catch (e) {
+          console.error('Evaluate error:', e);
       }
-
       return results;
     });
 
