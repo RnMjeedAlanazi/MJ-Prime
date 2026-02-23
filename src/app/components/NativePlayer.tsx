@@ -65,12 +65,15 @@ export default function NativePlayer({
   // Refs for timers
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const token = (() => {
+  const { token, domain } = (() => {
     try {
-      const u = new URL(iframeSource, 'https://x.com');
-      return u.searchParams.get('player_token');
+      const u = new URL(iframeSource);
+      return { 
+        token: u.searchParams.get('player_token'),
+        domain: u.origin
+      };
     } catch {
-      return null;
+      return { token: null, domain: null };
     }
   })();
 
@@ -103,7 +106,8 @@ export default function NativePlayer({
 
     const fetchStreams = async () => {
       try {
-        const res = await fetch(`/api/extract-video?token=${encodeURIComponent(token)}`);
+        const url = `/api/extract-video?token=${encodeURIComponent(token!)}${domain ? `&domain=${encodeURIComponent(domain)}` : ''}`;
+        const res = await fetch(url);
         
         if (!res.ok) {
            throw new Error(`تعذر استخراج الفيديو (Error ${res.status})`);

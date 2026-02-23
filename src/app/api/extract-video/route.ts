@@ -13,7 +13,8 @@ const cache = new Map<string, { streams: {quality: string, url: string}[], expir
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const token = searchParams.get('token');
-  const baseUrl = await getBaseUrl();
+  const domainParam = searchParams.get('domain');
+  const baseUrl = domainParam || await getBaseUrl();
 
   if (!token) {
     return NextResponse.json({ streams: [], error: 'Missing token parameter' }, { status: 400 });
