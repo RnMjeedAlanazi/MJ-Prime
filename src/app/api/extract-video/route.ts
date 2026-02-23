@@ -26,13 +26,22 @@ export async function GET(request: Request) {
 
   // FAST PATH: Try direct fetch and regex first (10-20x faster than Puppeteer)
   try {
-    const fastRes = await fetch(playUrl, {
-      headers: { 
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Referer': baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`,
-      },
-      next: { revalidate: 600 }
-    });
+    const fetchWithTimeout = async (url: string, timeout = 5000) => {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+        const response = await fetch(url, {
+            headers: { 
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+                'Referer': baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`,
+            },
+            signal: controller.signal,
+            next: { revalidate: 600 }
+        });
+        clearTimeout(id);
+        return response;
+    };
+
+    const fastRes = await fetchWithTimeout(playUrl);
     const html = await fastRes.text();
     
     const streams: {quality: string, url: string}[] = [];
@@ -41,122 +50,88 @@ export async function GET(request: Request) {
     const btnRegex = /class="hd_btn"[^>]*data-url="(.*?)"[^>]*>(.*?)<\/button>/g;
     let match;
     while ((match = btnRegex.exec(html)) !== null) {
-      streams.push({ quality: match[2].trim() || 'Auto', url: match[1] });
+      if (match[1]) streams.push({ quality: match[2].trim() || 'Auto', url: match[1] });
     }
 
-    // Pattern 2: Look for file properties or sources in JWPlayer/VideoJS setup
-    if (streams.length === 0) {
-      const jwRegex = /["']?(file|src|url)["']?\s*[:=]\s*["'](https?:\/\/[^"']+\.m3u8[^"']*)["']/gi;
-      let jwMatch;
-      while ((jwMatch = jwRegex.exec(html)) !== null) {
-        streams.push({ quality: 'Auto', url: jwMatch[2] });
-      }
-    }
-
-    // Pattern 3: Catch-all for ANY m3u8 link in the page (Last resort)
-    if (streams.length === 0) {
-      const catchAllRegex = /(https?:\/\/[^"'\s]+\.m3u8[^"'\s]*)/gi;
-      const allMatches = html.match(catchAllRegex);
-      if (allMatches) {
-        allMatches.forEach(url => streams.push({ quality: 'Direct', url }));
-      }
+    // Pattern 2: Look for m3u8 in scripts (JWPlayer/VideoJS setup)
+    const m3u8Regex = /(https?:\/\/[^"'\s]+\.m3u8[^"'\s]*)/gi;
+    const m3u8Matches = html.match(m3u8Regex);
+    if (m3u8Matches) {
+        m3u8Matches.forEach(url => {
+            if (!url.includes('google-analytics') && !url.includes('mixpanel')) {
+                // Try to guess quality from URL or just use Direct
+                const qualityMatch = url.match(/_(\d+p)\.m3u8/i);
+                streams.push({ quality: qualityMatch ? qualityMatch[1] : 'Direct', url });
+            }
+        });
     }
 
     if (streams.length > 0) {
-      // Remove duplicates and invalid links
-      const uniqueStreams = streams.filter((v, i, a) => 
-        a.findIndex(t => t.url === v.url) === i && !v.url.includes('google-analytics')
-      );
-      
-      if (uniqueStreams.length > 0) {
-        console.log(`[extract-video] Fast extracted ${uniqueStreams.length} streams`);
-        cache.set(token, { streams: uniqueStreams, expiry: Date.now() + 10 * 60000 });
-        return NextResponse.json({ streams: uniqueStreams });
-      }
+      const uniqueStreams = streams.filter((v, i, a) => a.findIndex(t => t.url === v.url) === i);
+      console.log(`[extract-video] Fast extracted ${uniqueStreams.length} streams`);
+      cache.set(token, { streams: uniqueStreams, expiry: Date.now() + 10 * 60000 });
+      return NextResponse.json({ streams: uniqueStreams });
     }
   } catch (e) {
-    console.log('[extract-video] Fast path error:', e);
+    console.warn('[extract-video] Fast path failed or timed out:', e);
   }
 
-  // SLOW PATH: Falling back to Puppeteer if regex fails
+  // SLOW PATH: Puppeteer
+  // Only attempt on Vercel, or ignore if chromium-min is missing locally
+  const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+  
+  if (!isVercel) {
+    console.log('[extract-video] Local environment detected. Skipping Puppeteer to avoid brotli error.');
+    return NextResponse.json({ streams: [], error: 'Fast path failed. Slow path disabled locally.' }, { status: 500 });
+  }
+
   let browser;
   try {
-    console.log('[extract-video] Launching optimized puppeteer for:', playUrl.substring(0, 80));
+    console.log('[extract-video] Launching Puppeteer (Production mode)');
 
     browser = await puppeteer.launch({
-      args: (chromium as any).args || [],
-      defaultViewport: (chromium as any).defaultViewport || null,
-      executablePath: await (chromium as any).executablePath(),
-      headless: (chromium as any).headless !== undefined ? (chromium as any).headless : true,
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
     } as any);
 
     const page = await browser.newPage();
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36');
 
-    // Block unnecessary resources to speed things up
     await page.setRequestInterception(true);
     page.on('request', (req) => {
-      const type = req.resourceType();
-      if (['image', 'stylesheet', 'font', 'media', 'other', 'manifest', 'ping'].includes(type)) {
+      if (['image', 'stylesheet', 'font', 'media'].includes(req.resourceType())) {
         req.abort();
       } else {
         req.continue();
       }
     });
 
-    // Use domcontentloaded for speed
-    console.log('[extract-video] Navigating to:', playUrl);
-    await page.goto(playUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
+    // Tight 7s timeout for Vercel
+    await page.goto(playUrl, { waitUntil: 'domcontentloaded', timeout: 7000 });
 
-    // Wait for the hd_btn buttons or a short timeout
-    console.log('[extract-video] Waiting for .hd_btn...');
-    await page.waitForSelector('.hd_btn', { timeout: 8000 }).catch(e => {
-        console.warn('[extract-video] Selector .hd_btn not found within 8s');
-    });
-
-    // Extract stream URLs from buttons
-    const streams = await page.evaluate(() => {
+    const finalStreams = await page.evaluate(() => {
       const results: {quality: string, url: string}[] = [];
-      try {
-        const buttons = document.querySelectorAll('.hd_btn');
-        buttons.forEach((btn) => {
-            const quality = btn.textContent?.trim() || 'Auto';
-            const url = btn.getAttribute('data-url');
-            if (url) results.push({ quality, url });
-        });
-
-        if (results.length === 0) {
-            // @ts-expect-error jwplayer
-            const player = window.jwplayer?.('player');
-            if (player) {
-                const sources = player.getPlaylist?.()?.[0]?.sources;
-                if (sources?.length) {
-                    sources.forEach((s: any) => results.push({ quality: s.label || 'Auto', url: s.file }));
-                }
-            }
-        }
-      } catch (e) {
-          console.error('Evaluate error:', e);
-      }
+      document.querySelectorAll('.hd_btn').forEach((btn) => {
+        const url = btn.getAttribute('data-url');
+        if (url) results.push({ quality: btn.textContent?.trim() || 'Auto', url });
+      });
       return results;
     });
 
     await browser.close();
-    browser = null;
-
-    console.log(`[extract-video] Puppeteer extracted ${streams.length} streams`);
-
-    // Cache the result for 10 minutes
-    if (streams.length > 0) {
-      cache.set(token, { streams, expiry: Date.now() + 10 * 60000 });
+    
+    if (finalStreams.length > 0) {
+      const unique = finalStreams.filter((v, i, a) => a.findIndex(t => t.url === v.url) === i);
+      cache.set(token, { streams: unique, expiry: Date.now() + 10 * 60000 });
+      return NextResponse.json({ streams: unique });
     }
-
-    return NextResponse.json({ streams });
+    
+    return NextResponse.json({ streams: [], error: 'No video streams found' }, { status: 404 });
   } catch (error) {
-    console.error('[extract-video] Error:', error instanceof Error ? error.message : error);
-    if (browser) {
-      try { await browser.close(); } catch {}
-    }
-    return NextResponse.json({ streams: [], error: 'Failed to extract video streams' }, { status: 500 });
+    console.error('[extract-video] Puppeteer error:', error);
+    if (browser) await browser.close();
+    return NextResponse.json({ streams: [], error: 'Video extraction timed out' }, { status: 504 });
   }
 }
