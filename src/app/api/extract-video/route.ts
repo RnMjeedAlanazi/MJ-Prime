@@ -64,11 +64,11 @@ export async function GET(request: Request) {
     console.log('[extract-video] Launching optimized puppeteer for:', playUrl.substring(0, 80));
 
     browser = await puppeteer.launch({
-      args: chromium.args,
+      args: (chromium as any).args || [],
       defaultViewport: (chromium as any).defaultViewport || null,
-      executablePath: await chromium.executablePath(),
+      executablePath: await (chromium as any).executablePath(),
       headless: (chromium as any).headless !== undefined ? (chromium as any).headless : true,
-    });
+    } as any);
 
     const page = await browser.newPage();
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
