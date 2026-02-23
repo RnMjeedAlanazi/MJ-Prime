@@ -106,20 +106,10 @@ export async function GET(request: Request) {
     console.warn('[extract-video] Fast Path fallback failed:', e.message);
   }
 
-  // 2. SLOW PATH (PUPPETEER) - Only on Production/Vercel
-  const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
-  
-  if (!isVercel) {
-    console.log('[extract-video] Fast Path failed locally. Skipping Puppeteer to avoid environment errors.');
-    return NextResponse.json({ 
-        streams: [], 
-        error: 'فشل المسار السريع للاستخراج. يرجى تجربة الموقع على Vercel لتشغيل المتصفح الوهمي.' 
-    }, { status: 504 });
-  }
-
+  // 2. SLOW PATH (PUPPETEER)
   let browser;
   try {
-    console.log('[extract-video] Launching Puppeteer Serverless');
+    console.log('[extract-video] Launching Puppeteer');
 
     browser = await puppeteer.launch({
       args: chromium.args,
