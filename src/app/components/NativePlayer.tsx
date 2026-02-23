@@ -238,13 +238,17 @@ export default function NativePlayer({
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native HLS for iOS/Safari
       video.src = proxiedUrl;
       setupEvents();
-      video.play().catch(e => {
-        if (e.name !== 'AbortError' && e.name !== 'NotAllowedError') {
-          console.error('Play error:', e);
-        }
-      });
+      
+      // Auto-play attempt for iOS
+      if (isPlaying || currentTime > 0 || !isChangingStream) {
+        video.play().catch(() => {
+          // iOS often blocks auto-play without user interaction
+          console.log('iOS auto-play blocked');
+        });
+      }
     }
 
     return () => {
