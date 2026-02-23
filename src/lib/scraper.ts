@@ -369,7 +369,7 @@ export async function fetchMovieDetails(slug: string): Promise<MovieDetails | nu
     const title = cleanMediaTitle(rawTitle);
     const story = $('.singleDesc p').text().trim();
     const poster = $('.posterImg img').attr('src') || $('.img-fluid').attr('src') || '';
-    const iframeSource = $('iframe[src*="video_player"]').attr('src') || '';
+    const iframeSource = ($('iframe[src*="video_player"]').attr('src') || '').replace('.xyz', '.best');
     const genres: GenreItem[] = [];
     $('.catsSingle a, .singleInfoCats a, .col-xl-6:contains("تصنيف") a, .series-module__qYAgva__genre').each((_, el) => {
       const g = $(el).text().trim(); 
@@ -428,9 +428,9 @@ export async function fetchEpisodeDetails(slug: string): Promise<MovieDetails | 
     const activeOnclick = $('li.active[onclick]').attr('onclick') || $('li[onclick]').first().attr('onclick') || '';
     const onclickMatch = activeOnclick.match(/player_iframe\.location\.href\s*=\s*['"]([^'"]+)['"]/);
     if (onclickMatch) {
-      iframeSource = onclickMatch[1];
+      iframeSource = onclickMatch[1].replace('.xyz', '.best');
     } else {
-      iframeSource = $('iframe[src*="video_player"]').attr('src') || '';
+      iframeSource = ($('iframe[src*="video_player"]').attr('src') || '').replace('.xyz', '.best');
     }
 
     const genres: GenreItem[] = [];
