@@ -158,7 +158,14 @@ export default function NativePlayer({
     };
 
     const handleLoadedMetadata = () => {
-      if (videoRef.current) setDuration(videoRef.current.duration);
+      if (videoRef.current) {
+        setDuration(videoRef.current.duration);
+        setStreamReady(true); // Metadata is enough to show the player
+      }
+    };
+    const handleCanPlay = () => {
+      setStreamReady(true);
+      setIsBuffering(false);
     };
     const handleWaiting = () => setIsBuffering(true);
     const handlePlaying = () => {
@@ -170,6 +177,8 @@ export default function NativePlayer({
     const setupEvents = () => {
       video.addEventListener('timeupdate', handleTimeUpdate);
       video.addEventListener('loadedmetadata', handleLoadedMetadata);
+      video.addEventListener('loadeddata', handleCanPlay);
+      video.addEventListener('canplay', handleCanPlay);
       video.addEventListener('play', handlePlay);
       video.addEventListener('pause', handlePause);
       video.addEventListener('waiting', handleWaiting);
@@ -179,6 +188,8 @@ export default function NativePlayer({
     const cleanupEvents = () => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('loadeddata', handleCanPlay);
+      video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('waiting', handleWaiting);
@@ -201,6 +212,25 @@ export default function NativePlayer({
               console.error('Play error:', e);
             }
           });
+        }
+      });
+
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              console.error('Fatal network error, trying to recover...');
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              console.error('Fatal media error, trying to recover...');
+              hls.recoverMediaError();
+              break;
+            default:
+              hls.destroy();
+              setError('خطأ في تشغيل الفيديو (Source Error)');
+              break;
+          }
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -380,24 +410,24 @@ export default function NativePlayer({
     }, 250);
   };
 
-  if (loading || !activeStream || !streamReady) {
-    if (streams.length === 0 || !streamReady) {
-      return (
-        <div className={styles.playerWrapper}>
-          <div className={styles.loadingState}>
-            <div className={styles.spinner} />
-            <p>جاري تجهيز المشغل المتقدم...</p>
-          </div>
+  // Show full-screen loading ONLY if we don't have metadata yet
+  if (loading && streams.length === 0) {
+    return (
+      <div className={styles.playerWrapper}>
+        <div className={styles.loadingState}>
+          <div className={styles.spinner} />
+          <p>جاري تجهيز المشغل المتقدم...</p>
         </div>
-      );
-    }
+      </div>
+    );
   }
 
-  if (error) {
+  // Error state (only if we have no streams at all)
+  if (error && streams.length === 0) {
     return (
       <div className={styles.playerWrapper}>
         <div className={styles.errorState}>
-          <Activity size={48} color="var(--accent, #e50914)" />
+          <Activity size={48} color="#ef4444" />
           <p>{error}</p>
         </div>
       </div>
@@ -424,9 +454,10 @@ export default function NativePlayer({
         />
       </div>
       
-      {(isBuffering || isChangingStream) && (
+      {(isBuffering || isChangingStream || !streamReady) && (
         <div className={styles.centerLoading}>
           <div className={styles.spinner} />
+          {(!streamReady && !isChangingStream) && <p style={{ marginTop: '12px', fontSize: '14px', color: '#fff' }}>جاري الاتصال بالمصدر...</p>}
         </div>
       )}
       
