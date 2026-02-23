@@ -27,7 +27,10 @@ export async function GET(request: Request) {
   // FAST PATH: Try direct fetch and regex first (10-20x faster than Puppeteer)
   try {
     const fastRes = await fetch(playUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
+      headers: { 
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`,
+      },
       next: { revalidate: 600 }
     });
     const html = await fastRes.text();
@@ -38,37 +41,38 @@ export async function GET(request: Request) {
     const btnRegex = /class="hd_btn"[^>]*data-url="(.*?)"[^>]*>(.*?)<\/button>/g;
     let match;
     while ((match = btnRegex.exec(html)) !== null) {
-      streams.push({ quality: match[2].trim(), url: match[1] });
+      streams.push({ quality: match[2].trim() || 'Auto', url: match[1] });
     }
 
-    // Pattern 2: Look for file properties in JWPlayer setup
+    // Pattern 2: Look for file properties or sources in JWPlayer/VideoJS setup
     if (streams.length === 0) {
-      const jwRegex = /["']?file["']?\s*:\s*["'](https?:\/\/[^"']+\.m3u8[^"']*)["']/gi;
+      const jwRegex = /["']?(file|src|url)["']?\s*[:=]\s*["'](https?:\/\/[^"']+\.m3u8[^"']*)["']/gi;
       let jwMatch;
       while ((jwMatch = jwRegex.exec(html)) !== null) {
-        streams.push({ quality: 'Auto', url: jwMatch[1] });
+        streams.push({ quality: 'Auto', url: jwMatch[2] });
       }
     }
 
-    // Pattern 3: Look for sources array in Setup call
+    // Pattern 3: Catch-all for ANY m3u8 link in the page (Last resort)
     if (streams.length === 0) {
-       const sourcesRegex = /sources\s*:\s*\[([\s\S]*?)\]/i;
-       const sourcesMatch = html.match(sourcesRegex);
-       if (sourcesMatch) {
-         const singleSourceRegex = /\{\s*file\s*:\s*["']([^"']+)["']\s*,\s*label\s*:\s*["']([^"']+)["']/g;
-         let sMatch;
-         while ((sMatch = singleSourceRegex.exec(sourcesMatch[1])) !== null) {
-           streams.push({ quality: sMatch[2], url: sMatch[1] });
-         }
-       }
+      const catchAllRegex = /(https?:\/\/[^"'\s]+\.m3u8[^"'\s]*)/gi;
+      const allMatches = html.match(catchAllRegex);
+      if (allMatches) {
+        allMatches.forEach(url => streams.push({ quality: 'Direct', url }));
+      }
     }
 
     if (streams.length > 0) {
-      // Remove duplicates
-      const uniqueStreams = streams.filter((v, i, a) => a.findIndex(t => t.url === v.url) === i);
-      console.log(`[extract-video] Fast extracted ${uniqueStreams.length} streams`);
-      cache.set(token, { streams: uniqueStreams, expiry: Date.now() + 10 * 60000 });
-      return NextResponse.json({ streams: uniqueStreams });
+      // Remove duplicates and invalid links
+      const uniqueStreams = streams.filter((v, i, a) => 
+        a.findIndex(t => t.url === v.url) === i && !v.url.includes('google-analytics')
+      );
+      
+      if (uniqueStreams.length > 0) {
+        console.log(`[extract-video] Fast extracted ${uniqueStreams.length} streams`);
+        cache.set(token, { streams: uniqueStreams, expiry: Date.now() + 10 * 60000 });
+        return NextResponse.json({ streams: uniqueStreams });
+      }
     }
   } catch (e) {
     console.log('[extract-video] Fast path error:', e);

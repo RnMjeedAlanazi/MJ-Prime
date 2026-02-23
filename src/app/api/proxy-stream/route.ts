@@ -1,20 +1,22 @@
 import { NextResponse } from 'next/server';
 
-async function fetchWithRetry(url: string, maxRetries = 5): Promise<Response> {
+export const runtime = 'edge';
+
+async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const response = await fetch(url, {
         headers: {
-          'Referer': 'https://web2210x.faselhdx.best/',
-          'Origin': 'https://web2210x.faselhdx.best',
+          'Referer': 'https://web22312x.faselhdx.best/',
+          'Origin': 'https://web22312x.faselhdx.best',
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         },
-        signal: AbortSignal.timeout(45000),
+        signal: AbortSignal.timeout(8000), // Strict 8s for Edge edge cases
       });
       return response;
     } catch (err) {
       if (attempt < maxRetries) {
-        await new Promise(r => setTimeout(r, 300 * attempt));
+        await new Promise(r => setTimeout(r, 200 * attempt));
         continue;
       }
       throw err;

@@ -15,13 +15,17 @@ async function retryGet(url: string, maxRetries = 3): Promise<{ data: string }> 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s is enough
+      const timeoutId = setTimeout(() => controller.abort(), 25000); 
       
-      const headers = await getHeaders();
+      const baseUrl = await getBaseUrl();
       const res = await fetch(url, {
-        headers,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Referer': baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`,
+          'Origin': baseUrl.replace(/\/$/, ''),
+        },
         signal: controller.signal,
-        next: { revalidate: 172800 } // Cache for 48 hours (2 days)
+        next: { revalidate: 3600 } 
       });
       clearTimeout(timeoutId);
 
