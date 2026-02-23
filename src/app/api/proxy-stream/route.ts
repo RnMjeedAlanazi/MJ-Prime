@@ -1,17 +1,21 @@
 import { NextResponse } from 'next/server';
+import { getBaseUrl } from '@/lib/config';
 
 export const runtime = 'edge';
 
 async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const response = await fetch(url, {
+    const baseUrl = await getBaseUrl();
+    const response = await fetch(url, {
         headers: {
-          'Referer': 'https://web22312x.faselhdx.best/',
-          'Origin': 'https://web22312x.faselhdx.best',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Referer': `${baseUrl.replace(/\/$/, '')}/video_player`,
+          'Origin': baseUrl.replace(/\/$/, ''),
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+          'Accept': '*/*',
+          'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8',
         },
-        signal: AbortSignal.timeout(8000), // Strict 8s for Edge edge cases
+        signal: AbortSignal.timeout(12000), 
       });
       return response;
     } catch (err) {
@@ -35,42 +39,59 @@ export async function GET(request: Request) {
 
   try {
     const response = await fetchWithRetry(url);
-    const contentType = response.headers.get('content-type') || 'application/octet-stream';
+    
+    if (!response.ok) {
+      console.error(`[proxy-stream] Remote fetch failed: ${response.status} for ${url.substring(0, 100)}`);
+      return new NextResponse(`Remote error: ${response.status}`, { status: response.status });
+    }
 
-    // Optimize: Only read into memory if it's an M3U8 playlist
-    if (contentType.includes('mpegurl') || contentType.includes('m3u8') || url.split('?')[0].endsWith('.m3u8')) {
+    const contentType = response.headers.get('content-type') || '';
+    const isM3U8 = contentType.includes('mpegurl') || 
+                   contentType.includes('m3u8') || 
+                   url.split('?')[0].toLowerCase().endsWith('.m3u8');
+
+    if (isM3U8) {
       let text = await response.text();
       const baseUrl = url.substring(0, url.lastIndexOf('/') + 1);
 
+      // Robust M3U8 rewriting
       const lines = text.split('\n').map(line => {
         const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith('#')) return line;
+        if (!trimmed) return line;
         
-        // Make URL absolute if relative
-        const absUrl = trimmed.startsWith('http') ? trimmed : baseUrl + trimmed;
+        // If it's a metadata line, check for URI attributes (like for encryption keys or subtitles)
+        if (trimmed.startsWith('#')) {
+          return trimmed.replace(/URI=["'](.*?)["']/g, (match, p1) => {
+             const absUrl = p1.startsWith('http') ? p1 : new URL(p1, baseUrl).href;
+             return `URI="/api/proxy-stream?url=${encodeURIComponent(absUrl)}"`;
+          });
+        }
+        
+        // It's a URL (segment or sub-playlist)
+        const absUrl = trimmed.startsWith('http') ? trimmed : new URL(trimmed, baseUrl).href;
         return `/api/proxy-stream?url=${encodeURIComponent(absUrl)}`;
       });
 
       return new NextResponse(lines.join('\n'), {
         headers: {
-          'Content-Type': contentType,
+          'Content-Type': 'application/vnd.apple.mpegurl',
           'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'public, max-age=3600',
+          'Cache-Control': 'no-cache', // Don't cache playlists
         },
       });
     }
 
-    // For segments (.ts, .mp4, etc.), stream the response directly
+    // Direct streaming for segments (.ts, .vtt, etc.)
     return new NextResponse(response.body, {
       headers: {
-        'Content-Type': contentType,
+        'Content-Type': contentType || 'application/octet-stream',
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, max-age=86400', // Cache segments for 24h
+        'Cache-Control': 'public, max-age=3600',
+        'Content-Length': response.headers.get('content-length') || '',
       },
     });
-  } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Unknown';
-    console.error('Proxy Stream Error:', msg);
-    return new NextResponse(msg, { status: 502 });
+  } catch (error: any) {
+    console.error('[proxy-stream] Final Error:', error.message);
+    return new NextResponse(error.message, { status: 502 });
   }
 }
