@@ -83,22 +83,35 @@ export async function GET(request: Request) {
     console.warn('[extract-video] Fast Path skipped/failed');
   }
 
-  // 4. SLOW PATH (PUPPETEER) - Only if we have at least 4 seconds left
-  const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
-  const remaining = getRemainingTime();
+  // 4. SLOW PATH (PUPPETEER)
+  const isVercel = process.env.VERCEL === '1';
+  const isRailway = !!process.env.RAILWAY_ENVIRONMENT;
+  const remaining = isRailway ? 30000 : getRemainingTime(); // Railway gets 30s+
   
   if (remaining > 4000) {
     let browser;
     try {
-      const launchOptions = isVercel ? {
-        args: chromium.args,
-        defaultViewport: chromium.defaultViewport,
-        executablePath: await chromium.executablePath(),
-        headless: chromium.headless,
-      } : {
-        executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-        headless: true
-      };
+      let launchOptions;
+      if (isVercel) {
+        launchOptions = {
+          args: chromium.args,
+          defaultViewport: chromium.defaultViewport,
+          executablePath: await chromium.executablePath(),
+          headless: chromium.headless,
+        };
+      } else if (isRailway) {
+        launchOptions = {
+          args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+          executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome',
+          headless: true
+        };
+      } else {
+        // Local Windows
+        launchOptions = {
+          executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+          headless: true
+        };
+      }
 
       browser = await puppeteer.launch(launchOptions as any);
       const page = await browser.newPage();
