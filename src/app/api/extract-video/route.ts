@@ -41,22 +41,37 @@ export async function GET(request: Request) {
       streams.push({ quality: match[2].trim(), url: match[1] });
     }
 
-    // Pattern 2: Look for JWPlayer style file source
+    // Pattern 2: Look for file properties in JWPlayer setup
     if (streams.length === 0) {
-      const fileRegex = /["']?file["']?\s*:\s*["'](https?:\/\/[^"']+\.m3u8[^"']*)["']/i;
-      const fileMatch = html.match(fileRegex);
-      if (fileMatch) {
-        streams.push({ quality: 'Auto', url: fileMatch[1] });
+      const jwRegex = /["']?file["']?\s*:\s*["'](https?:\/\/[^"']+\.m3u8[^"']*)["']/gi;
+      let jwMatch;
+      while ((jwMatch = jwRegex.exec(html)) !== null) {
+        streams.push({ quality: 'Auto', url: jwMatch[1] });
       }
     }
 
+    // Pattern 3: Look for sources array in Setup call
+    if (streams.length === 0) {
+       const sourcesRegex = /sources\s*:\s*\[([\s\S]*?)\]/i;
+       const sourcesMatch = html.match(sourcesRegex);
+       if (sourcesMatch) {
+         const singleSourceRegex = /\{\s*file\s*:\s*["']([^"']+)["']\s*,\s*label\s*:\s*["']([^"']+)["']/g;
+         let sMatch;
+         while ((sMatch = singleSourceRegex.exec(sourcesMatch[1])) !== null) {
+           streams.push({ quality: sMatch[2], url: sMatch[1] });
+         }
+       }
+    }
+
     if (streams.length > 0) {
-      console.log(`[extract-video] Fast extracted ${streams.length} streams`);
-      cache.set(token, { streams, expiry: Date.now() + 10 * 60000 });
-      return NextResponse.json({ streams });
+      // Remove duplicates
+      const uniqueStreams = streams.filter((v, i, a) => a.findIndex(t => t.url === v.url) === i);
+      console.log(`[extract-video] Fast extracted ${uniqueStreams.length} streams`);
+      cache.set(token, { streams: uniqueStreams, expiry: Date.now() + 10 * 60000 });
+      return NextResponse.json({ streams: uniqueStreams });
     }
   } catch (e) {
-    console.log('[extract-video] Fast path failed, falling back to Puppeteer');
+    console.log('[extract-video] Fast path error:', e);
   }
 
   // SLOW PATH: Falling back to Puppeteer if regex fails

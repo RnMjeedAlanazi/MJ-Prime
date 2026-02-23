@@ -104,6 +104,11 @@ export default function NativePlayer({
     const fetchStreams = async () => {
       try {
         const res = await fetch(`/api/extract-video?token=${encodeURIComponent(token)}`);
+        
+        if (!res.ok) {
+           throw new Error(`تعذر استخراج الفيديو (Error ${res.status})`);
+        }
+
         const data = await res.json();
         
         if (data.streams && data.streams.length > 0) {
@@ -111,11 +116,11 @@ export default function NativePlayer({
           const autoStream = data.streams.find((s: Stream) => s.quality.toLowerCase() === 'auto');
           setActiveStream(autoStream?.url || data.streams[0].url);
         } else {
-          setError('لم يتم العثور على جودات متوفرة');
+          setError(data.error || 'لم يتم العثور على جودات متوفرة');
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to fetch streams:', err);
-        setError('تعذر تحميل الفيديو');
+        setError(err.message || 'تعذر تحميل الفيديو');
       } finally {
         setLoading(false);
       }

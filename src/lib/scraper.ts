@@ -15,7 +15,7 @@ async function retryGet(url: string, maxRetries = 3): Promise<{ data: string }> 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased to 30s for stability
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s is enough
       
       const headers = await getHeaders();
       const res = await fetch(url, {

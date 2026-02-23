@@ -35,11 +35,9 @@ export async function GET(request: Request) {
     const response = await fetchWithRetry(url);
     const contentType = response.headers.get('content-type') || 'application/octet-stream';
 
-    let body: ArrayBuffer | string = await response.arrayBuffer();
-
-    // Rewrite M3U8 playlists to route through proxy
-    if (contentType.includes('mpegurl') || contentType.includes('m3u8') || url.endsWith('.m3u8')) {
-      let text = new TextDecoder().decode(body);
+    // Optimize: Only read into memory if it's an M3U8 playlist
+    if (contentType.includes('mpegurl') || contentType.includes('m3u8') || url.split('?')[0].endsWith('.m3u8')) {
+      let text = await response.text();
       const baseUrl = url.substring(0, url.lastIndexOf('/') + 1);
 
       const lines = text.split('\n').map(line => {
@@ -51,15 +49,21 @@ export async function GET(request: Request) {
         return `/api/proxy-stream?url=${encodeURIComponent(absUrl)}`;
       });
 
-      text = lines.join('\n');
-      body = text;
+      return new NextResponse(lines.join('\n'), {
+        headers: {
+          'Content-Type': contentType,
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'public, max-age=3600',
+        },
+      });
     }
 
-    return new NextResponse(body, {
+    // For segments (.ts, .mp4, etc.), stream the response directly
+    return new NextResponse(response.body, {
       headers: {
         'Content-Type': contentType,
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'public, max-age=86400', // Cache segments for 24h
       },
     });
   } catch (error: unknown) {
