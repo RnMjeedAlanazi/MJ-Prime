@@ -1,0 +1,239 @@
+:root {
+  --bg-deep: #030014;
+  --bg-glass: rgba(255, 255, 255, 0.03);
+  --bg-glass-hover: rgba(255, 255, 255, 0.08);
+  --border-glass: rgba(255, 255, 255, 0.05);
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1aa;
+  --text-muted: #52525b;
+  --accent-cyan: #00f0ff;
+  --accent-purple: #7000ff;
+  --accent-magenta: #ff00aa;
+  --accent-gold: #fbbf24;
+  --glow-cyan: rgba(0, 240, 255, 0.5);
+  --glow-purple: rgba(112, 0, 255, 0.5);
+  --card-radius: 16px;
+  --pill-radius: 30px;
+  --transition-fast: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --transition-smooth: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background-color: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: var(--font-almarai), var(--font-outfit), sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Beautiful Aurora Background Effect */
+body::before, body::after {
+  content: '';
+  position: fixed;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  filter: blur(120px);
+  z-index: -1;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+body::before {
+  background: var(--accent-purple);
+  top: -100px;
+  left: -200px;
+  animation: float 20s infinite alternate ease-in-out;
+}
+
+body::after {
+  background: var(--accent-cyan);
+  bottom: -200px;
+  right: -100px;
+  opacity: 0.2;
+  animation: float 25s infinite alternate-reverse ease-in-out;
+}
+
+@keyframes float {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(50px, 30px) scale(1.1); }
+  100% { transform: translate(-30px, -50px) scale(0.9); }
+}
+
+a { color: inherit; text-decoration: none; }
+img { display: block; max-width: 100%; border-radius: var(--card-radius); }
+button { font-family: inherit; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-deep); }
+::-webkit-scrollbar-thumb { background: var(--bg-glass-hover); border-radius: 10px; border: 1px solid var(--border-glass); }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-purple); box-shadow: 0 0 10px var(--glow-purple); }
+
+::selection { background: var(--accent-cyan); color: #000; }
+
+/* Global Premium Button Style */
+.premiumBtn {
+  background: #fff;
+  color: #000;
+  padding: 14px 34px;
+  border-radius: 16px;
+  font-weight: 800;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  border: none;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 10px 40px rgba(255, 255, 255, 0.2);
+  white-space: nowrap;
+}
+
+.premiumBtn:hover {
+  background: var(--accent-cyan);
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 15px 45px rgba(0, 240, 255, 0.3);
+}
+
+.premiumBtn:active { transform: scale(0.98); }
+.premiumBtn svg { flex-shrink: 0; }
+
+/* Unified Rating Badge for Posters */
+.ratingBadgeOverlay {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  height: 26px; /* Unified height with quality badge */
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 0.1px;
+}
+
+.imdbLogo {
+  background: #f5c518;
+  color: #000;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 8.5px;
+  font-weight: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-family: 'Outfit', sans-serif;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  margin-top: -1px;
+}
+
+/* Unified Premium Tags for Hero and internal pages */
+.premiumTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  height: 36px; /* Increased height as requested */
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.premiumTag .imdbLogo {
+  margin-right: 0;
+}
+
+/* Global Quality Badge System */
+.qBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  padding: 0 8px; /* Increased padding slightly */
+  height: 26px;
+  border-radius: 6px;
+  backdrop-filter: blur(10px);
+  z-index: 5;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  transition: all 0.2s ease;
+  font-size: 11px;
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 0.5px;
+}
+
+.qBadge-large {
+  height: 36px;
+  font-size: 14px;
+  padding: 0 14px;
+  border-radius: 8px;
+}
+
+.qBadge-4k {
+  background: rgba(245, 197, 24, 0.15);
+  border: 1px solid rgba(245, 197, 24, 0.6);
+  color: #f5c518;
+  text-shadow: 0 0 8px rgba(245, 197, 24, 0.4);
+}
+
+.qBadge-1080 {
+  background: rgba(0, 240, 255, 0.1);
+  border: 1px solid rgba(0, 240, 255, 0.5);
+  color: #00f0ff;
+}
+
+.qBadge-720 {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #cbd5e1;
+}
+
+.qBadge-bluray {
+  background: rgba(37, 99, 235, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.6);
+  color: #60a5fa;
+}
+
+.qBadge-webdl {
+  background: rgba(168, 85, 247, 0.1);
+  border: 1px solid rgba(168, 85, 247, 0.5);
+  color: #c084fc;
+}
+
+.qBadge-season {
+  background: rgba(255, 0, 170, 0.1);
+  border: 1px solid rgba(255, 0, 170, 0.5);
+  color: #ff00aa;
+  text-shadow: 0 0 8px rgba(255, 0, 170, 0.3);
+}
+
+.qBadge-hdtv {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  color: #34d399;
+}

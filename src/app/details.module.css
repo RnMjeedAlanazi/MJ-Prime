@@ -1,0 +1,264 @@
+.container { min-height: 100vh; }
+
+/* ===== HERO ===== */
+.hero {
+  position: relative;
+  width: 100%;
+  min-height: 80vh;
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 60px;
+}
+.heroBackground {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 15%;
+  filter: brightness(0.5);
+}
+.heroGradient {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to left, rgba(10,10,10,0.98) 0%, rgba(10,10,10,0.6) 35%, transparent 60%),
+    linear-gradient(to top, #0a0a0a 0%, rgba(10,10,10,0.3) 40%, transparent 70%);
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  padding: 0 4%;
+  max-width: 650px;
+}
+.title {
+  font-size: 44px;
+  font-weight: 900;
+  line-height: 1.1;
+  margin-bottom: 20px;
+  text-shadow: 0 4px 30px rgba(0,0,0,0.8);
+  font-family: 'Cairo', sans-serif;
+}
+
+/* ===== METADATA ===== */
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.metaBadge {
+  padding: 4px 14px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.qualityBadge {
+  composes: metaBadge;
+  background: var(--accent);
+  color: #fff;
+}
+.ratingBadge {
+  composes: metaBadge;
+  background: rgba(245,197,24,0.15);
+  color: #f5c518;
+  border: 1px solid rgba(245,197,24,0.25);
+}
+.yearBadge {
+  composes: metaBadge;
+  background: rgba(255,255,255,0.08);
+  color: var(--text-secondary);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.durationBadge {
+  composes: metaBadge;
+  background: rgba(255,255,255,0.08);
+  color: var(--text-secondary);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+/* ===== GENRES ===== */
+.genreRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.genreTag {
+  padding: 5px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(255,255,255,0.06);
+  color: var(--text-secondary);
+  border: 1px solid rgba(255,255,255,0.08);
+  transition: all 0.2s;
+  font-family: 'Cairo', sans-serif;
+}
+.genreTag:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+.story {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  margin-bottom: 28px;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-family: 'Cairo', sans-serif;
+}
+
+/* ===== BUTTONS ===== */
+.actions { display: flex; gap: 12px; margin-bottom: 10px; }
+.playBtn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 36px;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+  transition: all 0.2s;
+  font-family: 'Cairo', sans-serif;
+  box-shadow: 0 4px 20px rgba(229,9,20,0.3);
+}
+.playBtn:hover { background: var(--accent-hover); transform: scale(1.03); }
+.infoBtn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  transition: all 0.2s;
+  font-family: 'Cairo', sans-serif;
+  backdrop-filter: blur(8px);
+}
+.infoBtn:hover { background: rgba(255,255,255,0.12); }
+
+/* ===== PLAYER ===== */
+.playerSection {
+  padding: 0 4%;
+  margin-top: -30px;
+  margin-bottom: 50px;
+  position: relative;
+  z-index: 3;
+}
+
+/* ===== EPISODES ===== */
+.episodesSection { padding: 40px 4% 60px; }
+.sectionTitle {
+  font-size: 26px;
+  font-weight: 900;
+  margin-bottom: 24px;
+  font-family: 'Cairo', sans-serif;
+  position: relative;
+  padding-right: 16px;
+}
+.sectionTitle::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 4px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+.episodesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 10px;
+}
+.episodeCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border-radius: 8px;
+  transition: all 0.25s ease;
+  border: 1px solid rgba(255,255,255,0.04);
+  cursor: pointer;
+}
+.episodeCard:hover {
+  background: var(--bg-card-hover);
+  border-color: rgba(229,9,20,0.2);
+  transform: translateX(-4px);
+}
+.episodeIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 12px rgba(229,9,20,0.3);
+}
+.episodeCard:hover .episodeIcon { transform: scale(1.1); }
+.episodeTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: 'Cairo', sans-serif;
+  line-height: 1.4;
+}
+.noEpisodes {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 50px;
+  color: var(--text-muted);
+  font-size: 16px;
+  font-family: 'Cairo', sans-serif;
+}
+
+/* ===== NOT FOUND ===== */
+.notFound {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding-top: 68px;
+}
+.notFoundTitle {
+  font-size: 32px;
+  font-weight: 900;
+  font-family: 'Cairo', sans-serif;
+}
+.notFoundSub {
+  color: var(--text-muted);
+  font-size: 15px;
+  font-family: 'Cairo', sans-serif;
+}
+.backBtn {
+  margin-top: 16px;
+  padding: 12px 28px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Cairo', sans-serif;
+}
+.backBtn:hover { background: var(--accent-hover); }
