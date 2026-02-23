@@ -7,16 +7,23 @@ import BottomNav from './components/BottomNav';
 const almarai = Almarai({ subsets: ['arabic'], weight: ['300', '400', '700', '800'], variable: '--font-almarai' });
 const outfit = Outfit({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700', '800', '900'], variable: '--font-outfit' });
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+  themeColor: '#030014',
+};
+
 export const metadata: Metadata = {
   title: 'MJ Prime - Watch Movies & Series',
   description: 'Watch the latest movies, series, anime, and Asian dramas. Free streaming in HD.',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'MJ Prime',
   },
-  themeColor: '#030014',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
