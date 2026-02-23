@@ -19,8 +19,16 @@
   --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
+* { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+  -webkit-tap-highlight-color: transparent;
+}
+html { 
+  scroll-behavior: smooth; 
+  height: -webkit-fill-available;
+}
 
 body {
   background-color: var(--bg-deep);
@@ -28,8 +36,13 @@ body {
   font-family: var(--font-almarai), var(--font-outfit), sans-serif;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
   position: relative;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: env(safe-area-inset-bottom);
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
 }
 
 /* Beautiful Aurora Background Effect */
@@ -223,6 +236,11 @@ button { font-family: inherit; }
   background: rgba(168, 85, 247, 0.1);
   border: 1px solid rgba(168, 85, 247, 0.5);
   color: #c084fc;
+}
+@media (max-width: 768px) {
+  main {
+    padding-bottom: 80px;
+  }
 }
 
 .qBadge-season {
