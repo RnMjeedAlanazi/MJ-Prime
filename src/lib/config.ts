@@ -1,6 +1,6 @@
 import { db, ref, get } from './firebase';
 
-let cachedBaseUrl = 'https://web2230x.faselhdx.best';
+let cachedBaseUrl = 'https://web22312x.faselhdx.best';
 let lastFetch = 0;
 const CACHE_TTL = 300000; // 5 minutes (less frequent DB hits)
 let fetchPromise: Promise<string> | null = null;

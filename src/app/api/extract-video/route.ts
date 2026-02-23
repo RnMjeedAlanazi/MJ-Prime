@@ -10,7 +10,7 @@ const cache = new Map<string, { streams: {quality: string, url: string}[], expir
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const token = searchParams.get('token');
-  const baseUrl = await getBaseUrl();
+  const baseUrl = (await getBaseUrl()) || 'https://web22312x.faselhdx.best';
 
   if (!token) {
     return NextResponse.json({ streams: [], error: 'Missing token parameter' }, { status: 400 });
