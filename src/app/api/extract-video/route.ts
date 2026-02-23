@@ -46,16 +46,34 @@ export async function GET(request: Request) {
       const btnRegex = /class="hd_btn"[^>]*data-url="(.*?)"[^>]*>(.*?)<\/button>/g;
       let m; while ((m = btnRegex.exec(html)) !== null) if (m[1]) streams.push({ quality: m[2].trim() || 'Auto', url: m[1] });
 
-      // Pattern 2: JWPlayer Sources (label/file)
-      const jwRegex = /file\s*:\s*["'](https?:\/\/[^"']+\.m3u8[^"']*)["']\s*,\s*label\s*:\s*["']([^"']+)["']/g;
-      let jm; while ((jm = jwRegex.exec(html)) !== null) streams.push({ quality: jm[2] || 'Auto', url: jm[1] });
+      // Pattern 2: JWPlayer / Multi-source configs (file: "...", label: "...")
+      const multiMatch = html.matchAll(/["']?file["']?\s*:\s*["']([^"']+\.m3u8[^"']*)["']\s*,\s*["']?label["']?\s*:\s*["']([^"']+)["']/g);
+      for (const match of multiMatch) streams.push({ quality: match[2] || 'Auto', url: match[1] });
 
-      // Pattern 3: Simple sources array
-      const srcRegex = /sources\s*:\s*\[\s*\{\s*file\s*:\s*["'](.*?)["']\s*,\s*label\s*:\s*["'](.*?)["']/g;
-      let sm; while ((sm = srcRegex.exec(html)) !== null) streams.push({ quality: sm[2] || 'Auto', url: sm[1] });
+      // Pattern 3: Simple m3u8 in JS arrays or strings
+      if (streams.length === 0) {
+        const m3u8Match = html.matchAll(/["'](https?:\/\/[^"']+\.m3u8[^"']*)["']/g);
+        for (const match of m3u8Match) {
+          const url = match[1];
+          // Try to guess quality from URL or just call it HD
+          let q = 'HD';
+          if (url.includes('1080')) q = '1080p';
+          else if (url.includes('720')) q = '720p';
+          else if (url.includes('480')) q = '480p';
+          streams.push({ quality: q, url });
+        }
+      }
 
       if (streams.length > 0) {
+        // Clean and prioritize unique URLs
         const unique = streams.filter((v, i, a) => a.findIndex(t => t.url === v.url) === i);
+        // Sort by quality (descending)
+        unique.sort((a, b) => {
+          const qA = parseInt(a.quality) || 0;
+          const qB = parseInt(b.quality) || 0;
+          return qB - qA;
+        });
+        
         cache.set(token, { streams: unique, expiry: Date.now() + 600000 });
         return NextResponse.json({ streams: unique });
       }
