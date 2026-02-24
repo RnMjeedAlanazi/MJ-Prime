@@ -46,12 +46,18 @@ export async function GET(request: Request) {
       headers: {
         'Content-Type': contentType,
         'Cache-Control': 'public, max-age=86400, must-revalidate',
+        'Access-Control-Allow-Origin': '*',
       },
     });
   } catch (error) {
     console.error('Proxy Image Error:', error);
-    // Fallback: return a generic broken image or empty response instead of 500 if possible, 
-    // but here we stick to 500 with a log.
-    return new NextResponse('Failed to fetch image', { status: 500 });
+    // Return a 1x1 transparent pixel on error to prevent broken image icons
+    const transparentPixel = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+    return new NextResponse(transparentPixel, {
+      headers: {
+        'Content-Type': 'image/gif',
+        'Cache-Control': 'no-cache',
+      },
+    });
   }
 }

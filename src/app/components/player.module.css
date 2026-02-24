@@ -113,8 +113,14 @@
   transition: height 0.2s ease;
 }
 
-.timelineContainer:hover {
-  height: 8px;
+.bufferedBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  z-index: 1;
 }
 
 .timelineProgress {
@@ -122,6 +128,7 @@
   background: var(--accent, #e50914);
   border-radius: 4px;
   position: relative;
+  z-index: 2;
 }
 
 .timelineThumb {

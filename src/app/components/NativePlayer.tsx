@@ -55,6 +55,7 @@ export default function NativePlayer({
   const [isHovering, setIsHovering] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [isChangingStream, setIsChangingStream] = useState(false);
+  const [buffered, setBuffered] = useState(0);
   
   // Next Episode Popup
   const [showNextPopup, setShowNextPopup] = useState(false);
@@ -153,6 +154,11 @@ export default function NativePlayer({
       const time = videoRef.current.currentTime;
       const dur = videoRef.current.duration;
       setCurrentTime(time);
+
+      if (videoRef.current.buffered.length > 0) {
+        const bufferedEnd = videoRef.current.buffered.end(videoRef.current.buffered.length - 1);
+        setBuffered((bufferedEnd / dur) * 100);
+      }
       
       // Auto-trigger Next Episode Popup 5 mins before end (300s)
       if (nextEpisode && dur > 300 && dur - time <= 300 && !hasTriggeredNext.current) {
@@ -559,6 +565,7 @@ export default function NativePlayer({
         <div className={styles.bottomControls}>
           
           <div className={styles.timelineContainer} onClick={handleTimelineClick}>
+            <div className={styles.bufferedBar} style={{ width: `${buffered}%` }} />
             <div className={styles.timelineProgress} style={{ width: `${progressPercent}%` }}>
               <div className={styles.timelineThumb} />
             </div>
