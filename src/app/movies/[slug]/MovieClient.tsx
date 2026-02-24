@@ -38,8 +38,18 @@ export default function MovieClient({ movie, candidates }: { movie: MovieDetails
 
   const proxyImg = (url: string) => `/api/proxy-image?url=${encodeURIComponent(url)}`;
 
+  const handleWatch = () => {
+    setShowPlayer(true);
+    setTimeout(() => {
+      document.getElementById('player-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
   return (
     <div className={styles.page}>
+      {/* Scroll Anchor */}
+      <div id="player-anchor" style={{ position: 'absolute', top: '100vh' }} />
+
       {/* Info Section */}
       <motion.div 
         initial={{ opacity: 0, y: 30 }}
@@ -102,7 +112,7 @@ export default function MovieClient({ movie, candidates }: { movie: MovieDetails
 
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className={styles.actions}>
             {movie.iframeSource && (
-              <button className="premiumBtn" onClick={() => setShowPlayer(true)}>
+              <button className="premiumBtn" onClick={handleWatch}>
                 <Play size={20} fill="currentColor" strokeWidth={2.5} /> مشاهدة الفيلم
               </button>
             )}
@@ -122,20 +132,22 @@ export default function MovieClient({ movie, candidates }: { movie: MovieDetails
       <AnimatePresence>
         {showPlayer && movie.iframeSource && (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: 20 }} 
+            initial={{ opacity: 0, scale: 0.95, y: 30 }} 
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            exit={{ opacity: 0, scale: 0.95, y: 30 }}
             className={styles.playerSection}
           >
-            <div className={styles.playerHeader}>
-              <h2 className={styles.playerTitle}>
-                <Play size={24} fill="currentColor" color="var(--accent-cyan)" /> مشاهدة: {movie.title}
-              </h2>
-              <button className={styles.closeBtn} onClick={() => setShowPlayer(false)}>
-                <X size={18} /> إغلاق
-              </button>
+            <div className={styles.playerContainer}>
+              <div className={styles.playerHeader}>
+                <h2 className={styles.playerTitle}>
+                  <Play size={24} fill="currentColor" color="var(--accent-cyan)" /> مشاهدة: {movie.title}
+                </h2>
+                <button className={styles.closeBtn} onClick={() => setShowPlayer(false)}>
+                  <X size={18} /> إغلاق
+                </button>
+              </div>
+              <NativePlayer iframeSource={movie.iframeSource} />
             </div>
-            <NativePlayer iframeSource={movie.iframeSource} />
           </motion.div>
         )}
       </AnimatePresence>

@@ -203,20 +203,26 @@
 /* ===== PLAYER ===== */
 .playerSection {
   max-width: 1400px;
-  margin: 0 auto;
-  padding: 30px 5% 60px;
-  animation: fadeIn 0.4s ease;
+  margin: 40px auto;
+  padding: 0 5% 100px;
+  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+.playerContainer {
+  background: #000;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 30px 100px rgba(0,0,0,0.9), 0 0 40px rgba(0, 240, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
 .playerHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 25px;
-  background: var(--bg-glass);
-  padding: 15px 30px;
-  border-radius: var(--pill-radius);
-  border: 1px solid var(--border-glass);
-  backdrop-filter: blur(10px);
+  padding: 20px 30px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.05), transparent);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 .playerTitle {
   font-family: 'Almarai', sans-serif;
@@ -255,4 +261,27 @@
   .title { font-size: 30px; }
   .tags { justify-content: center; }
   .genres { justify-content: center; }
+  
+  .playerSection {
+    padding: 0 0 100px; /* Full width on mobile */
+  }
+  
+  .playerContainer {
+    border-radius: 0; /* Remove radius on mobile for full-bleed look */
+    border-left: none;
+    border-right: none;
+  }
+  
+  .playerHeader {
+    padding: 15px 20px;
+  }
+  
+  .playerTitle {
+    font-size: 15px;
+  }
+  
+  .closeBtn {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
 }
