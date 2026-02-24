@@ -283,6 +283,8 @@ export default function NativePlayer({
 
   // Controls Actions
   useEffect(() => {
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    
     if (showNextPopup && nextCountdown > 0) {
       countdownIntervalRef.current = setInterval(() => {
         setNextCountdown(prev => {
@@ -297,8 +299,8 @@ export default function NativePlayer({
     }
     return () => {
       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-    }
-  }, [showNextPopup, nextEpisode]);
+    };
+  }, [showNextPopup]); // Only restart when the visibility changes
 
   const togglePlay = () => {
     if (videoRef.current) {
