@@ -379,8 +379,10 @@ export default function NativePlayer({
   const handleTimelineClick = (e: MouseEvent<HTMLDivElement>) => {
     if (!videoRef.current || !duration) return;
     const rect = e.currentTarget.getBoundingClientRect();
-    const pos = (e.clientX - rect.left) / rect.width;
-    videoRef.current.currentTime = pos * duration;
+    // RTL logic: 0 is at rect.right, 1 is at rect.left
+    const pos = (rect.right - e.clientX) / rect.width;
+    const seekTo = Math.max(0, Math.min(pos * duration, duration));
+    videoRef.current.currentTime = seekTo;
   };
 
   const skip = (seconds: number) => {
