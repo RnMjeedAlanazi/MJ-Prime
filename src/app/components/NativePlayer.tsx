@@ -8,6 +8,7 @@ import {
   RotateCcw, RotateCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Storage } from '@/lib/storage';
 
 interface Stream {
   quality: string;
@@ -50,6 +51,14 @@ export default function NativePlayer({
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
+
+  // Load initial settings
+  useEffect(() => {
+    const savedVol = Storage.get('player_volume');
+    const savedMuted = Storage.get('player_muted');
+    if (savedVol !== null) setVolume(Number(savedVol));
+    if (savedMuted !== null) setIsMuted(savedMuted === 'true');
+  }, []);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isHovering, setIsHovering] = useState(false);
@@ -108,6 +117,17 @@ export default function NativePlayer({
 
     const fetchStreams = async () => {
       try {
+        // Check cache first
+        const cacheKey = `streams_${token}`;
+        const cached = Storage.get(cacheKey);
+        if (cached) {
+          setStreams(cached);
+          const autoStream = cached.find((s: Stream) => s.quality.toLowerCase() === 'auto');
+          setActiveStream(autoStream?.url || cached[0].url);
+          setLoading(false);
+          return;
+        }
+
         const url = `/api/extract-video?token=${encodeURIComponent(token!)}${domain ? `&domain=${encodeURIComponent(domain)}` : ''}`;
         const res = await fetch(url);
         
@@ -119,8 +139,14 @@ export default function NativePlayer({
         
         if (data.streams && data.streams.length > 0) {
           setStreams(data.streams);
+          // Cache results for 30 minutes
+          Storage.set(cacheKey, data.streams, 1800);
+          
+          const prefQuality = Storage.get('player_preferred_quality');
+          const matchedStream = prefQuality ? data.streams.find((s: Stream) => s.quality === prefQuality) : null;
           const autoStream = data.streams.find((s: Stream) => s.quality.toLowerCase() === 'auto');
-          setActiveStream(autoStream?.url || data.streams[0].url);
+          
+          setActiveStream(matchedStream?.url || autoStream?.url || data.streams[0].url);
         } else {
           setError(data.error || 'لم يتم العثور على جودات متوفرة');
         }
@@ -133,7 +159,7 @@ export default function NativePlayer({
     };
 
     fetchStreams();
-  }, [token]);
+  }, [token, domain]);
 
   useEffect(() => {
     if (!activeStream || !videoRef.current) return;
@@ -311,19 +337,23 @@ export default function NativePlayer({
 
   const toggleMute = () => {
     if (videoRef.current) {
-      videoRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
+      const newMuted = !isMuted;
+      videoRef.current.muted = newMuted;
+      setIsMuted(newMuted);
+      Storage.set('player_muted', String(newMuted), 86400 * 30); // 30 days
     }
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
     setVolume(val);
+    Storage.set('player_volume', String(val), 86400 * 30);
     if (videoRef.current) {
       videoRef.current.volume = val;
       if (val > 0 && isMuted) {
         videoRef.current.muted = false;
         setIsMuted(false);
+        Storage.set('player_muted', 'false', 86400 * 30);
       }
     }
   };
@@ -729,6 +759,7 @@ export default function NativePlayer({
                               setIsChangingStream(true);
                               setIsBuffering(true);
                               setActiveStream(s.url);
+                              Storage.set('player_preferred_quality', s.quality, 86400 * 30);
                               setShowSettings(false);
                             }}
                           >
