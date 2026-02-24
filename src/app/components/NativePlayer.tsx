@@ -161,16 +161,16 @@ export default function NativePlayer({
         setBuffered((bufferedEnd / dur) * 100);
       }
       
-      // Auto-trigger Next Episode Popup 5 mins before end (300s)
+      // Auto-trigger Next Episode Popup 3 mins before end (180s)
       if (nextEpisode && dur > 0) {
-        if (dur - time <= 300) {
+        if (dur - time <= 180) {
           if (!hasTriggeredNext.current) {
             hasTriggeredNext.current = true;
             setNextCountdown(6); // Reset countdown to 6 when showing
             setShowNextPopup(true);
           }
         } else {
-          // If the user seeks back to before the 5-min mark, allow it to trigger again later
+          // If the user seeks back to before the 3-min mark, allow it to trigger again later
           if (hasTriggeredNext.current) {
             hasTriggeredNext.current = false;
             setShowNextPopup(false);
