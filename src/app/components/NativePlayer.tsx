@@ -161,10 +161,11 @@ export default function NativePlayer({
         setBuffered((bufferedEnd / dur) * 100);
       }
       
-      // Auto-trigger Next Episode Popup 5 mins before end (300s)
+      // Auto-trigger Next Episode 5 mins before end (300s)
       if (nextEpisode && dur > 300 && dur - time <= 300 && !hasTriggeredNext.current) {
         hasTriggeredNext.current = true;
-        setShowNextPopup(true);
+        // Instead of just showing a popup, we trigger the next play immediately as requested.
+        nextEpisode.onPlay();
       }
     };
 
@@ -388,11 +389,17 @@ export default function NativePlayer({
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     setIsDragging(true);
+    if (videoRef.current && !videoRef.current.paused) {
+      videoRef.current.pause();
+    }
     handleTimelineAction(e.clientX, e.currentTarget);
   };
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     setIsDragging(true);
+    if (videoRef.current && !videoRef.current.paused) {
+      videoRef.current.pause();
+    }
     handleTimelineAction(e.touches[0].clientX, e.currentTarget);
   };
 
@@ -410,7 +417,12 @@ export default function NativePlayer({
     };
 
     const handleGlobalEnd = () => {
-      if (isDragging) setIsDragging(false);
+      if (isDragging) {
+        setIsDragging(false);
+        if (videoRef.current) {
+          videoRef.current.play().catch(() => {});
+        }
+      }
     };
 
     if (isDragging) {
