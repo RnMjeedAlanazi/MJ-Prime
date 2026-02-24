@@ -59,6 +59,20 @@ export default function SeriesClient({ season, candidates }: { season: SeasonDat
     setLoading(false);
   };
 
+  // Find next episode information
+  const getNextEpisodeInfo = () => {
+    if (!activeEp) return undefined;
+    const currentIndex = season.episodes.findIndex(ep => ep.epLink === activeEp.epLink);
+    if (currentIndex !== -1 && currentIndex < season.episodes.length - 1) {
+      const nextEp = season.episodes[currentIndex + 1];
+      return {
+        title: nextEp.epTitle,
+        onPlay: () => playEpisode(nextEp)
+      };
+    }
+    return undefined;
+  };
+
   return (
     <div className={styles.page}>
       {/* Info Section */}
@@ -205,7 +219,12 @@ export default function SeriesClient({ season, candidates }: { season: SeasonDat
           </div>
           <div className={styles.playerBox}>
             {loading && <div className={styles.loadingPulse}>جاري المعالجة...</div>}
-            {!loading && iframeSource && <NativePlayer iframeSource={iframeSource} />}
+            {!loading && iframeSource && (
+              <NativePlayer 
+                iframeSource={iframeSource} 
+                nextEpisode={getNextEpisodeInfo()}
+              />
+            )}
           </div>
         </motion.div>
       )}

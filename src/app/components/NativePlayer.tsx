@@ -162,7 +162,7 @@ export default function NativePlayer({
       }
       
       // Auto-trigger Next Episode Popup 5 mins before end (300s)
-      if (nextEpisode && dur > 300) {
+      if (nextEpisode && dur > 0) {
         if (dur - time <= 300) {
           if (!hasTriggeredNext.current) {
             hasTriggeredNext.current = true;
@@ -171,9 +171,11 @@ export default function NativePlayer({
           }
         } else {
           // If the user seeks back to before the 5-min mark, allow it to trigger again later
-          hasTriggeredNext.current = false;
-          setShowNextPopup(false);
-          if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+          if (hasTriggeredNext.current) {
+            hasTriggeredNext.current = false;
+            setShowNextPopup(false);
+            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+          }
         }
       }
     };
