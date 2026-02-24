@@ -60,7 +60,7 @@ export default function NativePlayer({
   
   // Next Episode Popup
   const [showNextPopup, setShowNextPopup] = useState(false);
-  const [nextCountdown, setNextCountdown] = useState(4);
+  const [nextCountdown, setNextCountdown] = useState(6);
   const hasTriggeredNext = useRef(false);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -166,7 +166,7 @@ export default function NativePlayer({
         if (dur - time <= 300) {
           if (!hasTriggeredNext.current) {
             hasTriggeredNext.current = true;
-            setNextCountdown(4); // Reset countdown to 4 when showing
+            setNextCountdown(6); // Reset countdown to 6 when showing
             setShowNextPopup(true);
           }
         } else {
@@ -791,7 +791,7 @@ export default function NativePlayer({
             </div>
             <div 
               className={styles.toastProgress} 
-              style={{ width: `${(nextCountdown / 4) * 100}%` }} 
+              style={{ width: `${(nextCountdown / 6) * 100}%` }} 
             />
           </motion.div>
         )}
