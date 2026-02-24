@@ -769,7 +769,7 @@ export default function NativePlayer({
             className={styles.nextEpisodeToast}
           >
             <div className={styles.toastContent}>
-              <div className={styles.toastType}>الحلقة التالية خلال {nextCountdown}...</div>
+              <div className={styles.toastType}>سيتم البدء تلقائياً خلال {nextCountdown}</div>
               <div className={styles.toastTitle}>{nextEpisode.title}</div>
             </div>
             <div className={styles.toastActions}>

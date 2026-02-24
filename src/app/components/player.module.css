@@ -404,91 +404,139 @@
   animation: spin 0.8s linear infinite;
 }
 
-/* Next Episode Notification (Bottom Left Toast) */
+/* Next Episode Notification (Bottom Left Toast) - Redesigned for Premium Identity */
 .nextEpisodeToast {
   position: absolute;
-  bottom: 100px;
+  bottom: 80px;
   left: 20px;
-  background: rgba(15, 15, 15, 0.95);
-  backdrop-filter: blur(20px);
-  border-radius: 12px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border-radius: var(--card-radius);
   padding: 16px;
-  width: 280px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  width: 300px;
+  border: 1px solid var(--border-glass);
+  box-shadow: var(--shadow-glass);
   z-index: 60;
   overflow: hidden;
-  direction: rtl; /* Arabic support */
+  direction: rtl; 
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .toastContent {
-  margin-bottom: 12px;
+  margin-bottom: 2px;
 }
 
 .toastType {
-  color: #aaa;
+  color: var(--accent-cyan);
   font-size: 11px;
-  margin-bottom: 4px;
-  font-weight: 600;
+  margin-bottom: 6px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 10px var(--glow-cyan);
 }
 
 .toastTitle {
   color: #fff;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 800;
   display: -webkit-box;
-  -webkit-line-clamp: 1;
-  line-clamp: 1;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   line-height: 1.4;
+  font-family: var(--font-almarai), sans-serif;
 }
 
 .toastActions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .toastPlayBtn {
-  flex: 1;
-  background: var(--accent, #e50914);
-  color: #fff;
+  flex: 1.4;
+  background: #fff;
+  color: #000;
   border: none;
-  padding: 8px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 700;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 800;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
+  font-family: var(--font-almarai), sans-serif;
 }
 
 .toastPlayBtn:hover {
-  background: #b9090b;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 20px var(--glow-cyan);
 }
 
 .toastCancelBtn {
-  background: rgba(255, 255, 255, 0.1);
+  flex: 1;
+  background: var(--bg-glass-hover);
   color: #fff;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
+  border: 1px solid var(--border-glass);
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
+  font-family: var(--font-almarai), sans-serif;
 }
 
 .toastCancelBtn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .toastProgress {
   position: absolute;
   bottom: 0;
-  right: 0;
+  left: 0;
   height: 3px;
-  background: var(--accent, #e50914);
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+  box-shadow: 0 0 10px var(--glow-cyan);
   transition: width 1s linear;
+}
+
+/* iOS & Mobile Optimization */
+@media (max-width: 768px) {
+  .nextEpisodeToast {
+    bottom: 70px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-width: none;
+  }
+  
+  .bottomControls {
+    padding: 0 10px 10px 10px;
+  }
+
+  .centerControlsGroup {
+    gap: 30px;
+  }
+  
+  .centerPlayBtn {
+    width: 70px;
+    height: 70px;
+  }
+
+  .centerControlBtn svg {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+/* Ensure no gray highlight on iOS */
+.controlBtn, .centerPlayBtn, .centerControlBtn, .toastPlayBtn, .toastCancelBtn {
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
 }
 
 .skipButtonsGroup {
