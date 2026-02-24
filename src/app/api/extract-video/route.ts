@@ -3,11 +3,10 @@ import puppeteer from 'puppeteer';
 import { getBaseUrl } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 30;
+export const maxDuration = 45; // Increased slightly
 
 const cache = new Map<string, { streams: {quality: string, url: string}[], expiry: number }>();
 
-// Singleton browser instance for Railway/Docker
 let globalBrowser: any = null;
 
 async function getBrowser() {
@@ -44,14 +43,15 @@ export async function GET(request: Request) {
   
   if (!token) return NextResponse.json({ streams: [], error: 'Missing token' }, { status: 400 });
 
-  // 1. Check Cache
   const cached = cache.get(token);
   if (cached && cached.expiry > Date.now()) return NextResponse.json({ streams: cached.streams });
 
-  // 2. Prepare URL
   let baseDomain = domainParam || await getBaseUrl();
-  baseDomain = baseDomain.replace('.xyz', '.best').replace(/\/$/, '');
-  const playUrl = `${baseDomain}/video_player?player_token=${token}`;
+  // Ensure we use the latest working domain
+  if (baseDomain.includes('faselhd')) {
+      baseDomain = baseDomain.replace(/\.([a-z0-9]+)$/, '.best');
+  }
+  const playUrl = `${baseDomain.replace(/\/$/, '')}/video_player?player_token=${token}`;
 
   let page: any = null;
   let caughtStream: string | null = null;
@@ -61,53 +61,63 @@ export async function GET(request: Request) {
     const browser = await getBrowser();
     page = await browser.newPage();
     
-    // Minimalistic Page
-    await page.setViewport({ width: 800, height: 600 });
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
+    await page.setViewport({ width: 1280, height: 720 });
     
     await page.setRequestInterception(true);
     page.on('request', (req: any) => {
       const type = req.resourceType();
       const url = req.url();
+      
       if (url.includes('.m3u8') || url.includes('.mp4') || url.includes('playlist.m3u8')) {
         caughtStream = url;
         if (url.includes('1080')) caughtQuality = '1080p';
         else if (url.includes('720')) caughtQuality = '720p';
         else if (url.includes('480')) caughtQuality = '480p';
         req.continue();
-      } else if (['image', 'stylesheet', 'font', 'media', 'other'].includes(type) || url.includes('analytics') || url.includes('google') || url.includes('ads')) {
+      } else if (['image', 'font', 'media'].includes(type) || url.includes('analytics') || url.includes('google') || url.includes('ads')) {
         req.abort();
       } else {
         req.continue();
       }
     });
 
-    // Fast Load
-    page.goto(playUrl, { waitUntil: 'domcontentloaded', timeout: 7000 } as any).catch(() => {});
+    // Try multiple wait conditions if one fails, but keep it snappy
+    try {
+        await page.goto(playUrl, { waitUntil: 'domcontentloaded', timeout: 8000 });
+    } catch (e) {
+        // Fallback for slow connection
+        console.log("Initial goto failed, waiting for stream specifically...");
+    }
     
-    // Quick Poll
-    const maxRetries = 100; // 5 seconds
-    for (let i = 0; i < maxRetries; i++) {
-        if (caughtStream) break;
+    // Polling for network capture
+    let retries = 0;
+    const maxRetries = 120; // 6 seconds total
+    while (retries < maxRetries && !caughtStream) {
         await new Promise(r => setTimeout(r, 50));
+        retries++;
     }
 
     if (!caughtStream) {
+        // Final attempt: check the DOM for the hidden data-url attribute in quality buttons
         caughtStream = await page.evaluate(() => {
-           const btn = document.querySelector('.hd_btn');
+           const btn = document.querySelector('.hd_btn') || document.querySelector('[data-url]');
            return btn ? btn.getAttribute('data-url') : null;
         }).catch(() => null);
     }
 
     if (caughtStream) {
       const result = [{ quality: caughtQuality, url: caughtStream }];
-      cache.set(token, { streams: result, expiry: Date.now() + 1800000 }); // 30 mins cache
+      cache.set(token, { streams: result, expiry: Date.now() + 1800000 });
       return NextResponse.json({ streams: result });
     }
   } catch (err) {
     console.error('Extraction Error:', err);
   } finally {
-    if (page) await page.close().catch(() => {});
+    if (page) {
+      await page.close().catch(() => {});
+    }
   }
 
-  return NextResponse.json({ streams: [], error: 'Extraction failed or timed out' }, { status: 200 });
+  return NextResponse.json({ streams: [], error: 'Extraction failed or timed out. Please try again.' }, { status: 200 });
 }
