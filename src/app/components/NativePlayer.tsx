@@ -56,6 +56,7 @@ export default function NativePlayer({
   const [showSettings, setShowSettings] = useState(false);
   const [isChangingStream, setIsChangingStream] = useState(false);
   const [buffered, setBuffered] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   
   // Next Episode Popup
   const [showNextPopup, setShowNextPopup] = useState(false);
@@ -376,13 +377,59 @@ export default function NativePlayer({
     }
   };
 
-  const handleTimelineClick = (e: MouseEvent<HTMLDivElement>) => {
+  const handleTimelineAction = (clientX: number, target: HTMLElement) => {
     if (!videoRef.current || !duration) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    // RTL logic: 0 is at rect.right, 1 is at rect.left
-    const pos = (rect.right - e.clientX) / rect.width;
+    const rect = target.getBoundingClientRect();
+    const pos = (rect.right - clientX) / rect.width;
     const seekTo = Math.max(0, Math.min(pos * duration, duration));
     videoRef.current.currentTime = seekTo;
+    setCurrentTime(seekTo);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    setIsDragging(true);
+    handleTimelineAction(e.clientX, e.currentTarget);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    setIsDragging(true);
+    handleTimelineAction(e.touches[0].clientX, e.currentTarget);
+  };
+
+  useEffect(() => {
+    const handleGlobalMouseMove = (e: any) => {
+      if (!isDragging || !containerRef.current) return;
+      const timeline = containerRef.current.querySelector(`.${styles.timelineContainer}`) as HTMLElement;
+      if (timeline) handleTimelineAction(e.clientX, timeline);
+    };
+
+    const handleGlobalTouchMove = (e: any) => {
+      if (!isDragging || !containerRef.current) return;
+      const timeline = containerRef.current.querySelector(`.${styles.timelineContainer}`) as HTMLElement;
+      if (timeline) handleTimelineAction(e.touches[0].clientX, timeline);
+    };
+
+    const handleGlobalEnd = () => {
+      if (isDragging) setIsDragging(false);
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleGlobalMouseMove);
+      window.addEventListener('touchmove', handleGlobalTouchMove);
+      window.addEventListener('mouseup', handleGlobalEnd);
+      window.addEventListener('touchend', handleGlobalEnd);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
+      window.removeEventListener('touchmove', handleGlobalTouchMove);
+      window.removeEventListener('mouseup', handleGlobalEnd);
+      window.removeEventListener('touchend', handleGlobalEnd);
+    };
+  }, [isDragging]);
+
+  const handleTimelineClick = (e: MouseEvent<HTMLDivElement>) => {
+    // Handled by handleMouseDown
   };
 
   const skip = (seconds: number) => {
@@ -566,7 +613,12 @@ export default function NativePlayer({
         {/* Bottom bar */}
         <div className={styles.bottomControls}>
           
-          <div className={styles.timelineContainer} onClick={handleTimelineClick}>
+          <div 
+             className={styles.timelineContainer} 
+             onMouseDown={handleMouseDown}
+             onTouchStart={handleTouchStart}
+             style={{ cursor: isDragging ? 'grabbing' : 'pointer' }}
+          >
             <div className={styles.bufferedBar} style={{ width: `${buffered}%` }} />
             <div className={styles.timelineProgress} style={{ width: `${progressPercent}%` }}>
               <div className={styles.timelineThumb} />

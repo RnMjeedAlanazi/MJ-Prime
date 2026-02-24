@@ -136,7 +136,7 @@
 
 .timelineThumb {
   position: absolute;
-  left: -7px; /* Position at the leading edge of the RTL bar */
+  left: -7px; 
   top: 50%;
   transform: translateY(-50%) scale(0);
   width: 14px;
@@ -147,7 +147,8 @@
   box-shadow: 0 0 10px rgba(0,0,0,0.5);
 }
 
-.timelineContainer:hover .timelineThumb {
+.timelineContainer:hover .timelineThumb,
+.timelineContainer:active .timelineThumb {
   transform: translateY(-50%) scale(1);
 }
 
