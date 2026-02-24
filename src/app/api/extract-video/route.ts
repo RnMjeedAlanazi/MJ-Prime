@@ -1,11 +1,9 @@
-// @ts-nocheck
 import { NextResponse } from 'next/server';
-import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium-min';
+import puppeteer from 'puppeteer';
 import { getBaseUrl } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 10; 
+export const maxDuration = 30; // Increased to allow browser launch
 
 const cache = new Map<string, { streams: {quality: string, url: string}[], expiry: number }>();
 
@@ -27,25 +25,27 @@ export async function GET(request: Request) {
   const playUrl = `${baseDomain}/video_player?player_token=${token}`;
 
   // 3. DIRECT PUPPETEER SNIFFER (Priority)
-  const isVercel = process.env.VERCEL === '1';
-  let browser;
-  try {
-    const launchOptions = isVercel ? {
-      args: [
-        ...chromium.args, 
-        '--no-sandbox', 
-        '--disable-setuid-sandbox', 
-        '--disable-web-security',
-        '--disable-features=IsolateOrigins,site-per-process'
-      ],
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-    } : {
-      executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-      headless: true
-    };
+    const isProduction = process.env.NODE_ENV === 'production';
+    const isRailway = process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_STATIC_URL;
 
-    browser = await puppeteer.launch(launchOptions as any);
+    let browser;
+    try {
+      let launchOptions = {
+        args: [
+          "--no-sandbox", 
+          "--disable-setuid-sandbox", 
+          "--disable-dev-shm-usage",
+          "--disable-web-security"
+        ],
+        headless: "new",
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || (
+          isProduction 
+            ? '/usr/bin/google-chrome-stable' 
+            : undefined
+        )
+      };
+
+      browser = await puppeteer.launch(launchOptions as any);
     const page = await browser.newPage();
     
     // Set a realistic User Agent
@@ -72,8 +72,8 @@ export async function GET(request: Request) {
       }
     });
 
-    // Go! Using 'commit' is the fastest possible way to start the lifecycle
-    page.goto(playUrl, { waitUntil: 'commit', timeout: 8500 }).catch(() => {});
+    // Go! Using 'networkidle2' or 'domcontentloaded' for better compatibility
+    page.goto(playUrl, { waitUntil: 'domcontentloaded', timeout: 8500 } as any).catch(() => {});
     
     // Super fast polling (every 100ms)
     const maxRetries = 85; // 8.5 seconds
