@@ -308,12 +308,46 @@ export default function NativePlayer({
   };
 
   const toggleFullscreen = async () => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || !videoRef.current) return;
+    
+    const video = videoRef.current;
+    const container = containerRef.current;
+
+    // iOS Compatibility: iPhone doesn't support the standard Fullscreen API on divs, 
+    // but it does support webkitEnterFullscreen on the video element itself.
+    if (!document.fullscreenEnabled && (video as any).webkitEnterFullscreen) {
+      try {
+        if (isPlaying) {
+          (video as any).webkitEnterFullscreen();
+        } else {
+          await video.play();
+          (video as any).webkitEnterFullscreen();
+        }
+        return;
+      } catch (e) {
+        console.error("iOS Fullscreen error:", e);
+      }
+    }
+
     if (!document.fullscreenElement) {
-      await containerRef.current.requestFullscreen();
-      setIsFullscreen(true);
+      try {
+        if (container.requestFullscreen) {
+          await container.requestFullscreen();
+        } else if ((container as any).webkitRequestFullscreen) {
+          await (container as any).webkitRequestFullscreen();
+        } else if ((container as any).msRequestFullscreen) {
+          await (container as any).msRequestFullscreen();
+        }
+        setIsFullscreen(true);
+      } catch (err) {
+        console.error("Error attempting to enable full-screen mode:", err);
+      }
     } else {
-      await document.exitFullscreen();
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        await (document as any).webkitExitFullscreen();
+      }
       setIsFullscreen(false);
     }
   };

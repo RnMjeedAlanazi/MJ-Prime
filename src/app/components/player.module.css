@@ -10,6 +10,19 @@
   height: auto;
 }
 
+.playerWrapper:fullscreen {
+    aspect-ratio: auto;
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+}
+
+.playerWrapper:-webkit-full-screen {
+    aspect-ratio: auto;
+    width: 100vw;
+    height: 100vh;
+}
+
 @media (max-width: 768px) {
   .playerWrapper {
     aspect-ratio: auto;
