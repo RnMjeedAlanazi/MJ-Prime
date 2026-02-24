@@ -5,8 +5,22 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  aspect-ratio: 16/9;
-  min-height: 200px;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  height: auto;
+}
+
+@media (max-width: 768px) {
+  .playerWrapper {
+    aspect-ratio: auto;
+    height: 240px; /* Force minimum playable height on mobile */
+  }
+}
+
+@media (max-width: 480px) {
+  .playerWrapper {
+    height: 210px;
+  }
 }
 
 .videoContainer {

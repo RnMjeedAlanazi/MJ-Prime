@@ -72,18 +72,18 @@ export async function GET(request: Request) {
       }
     });
 
-    // Go! Using 'networkidle2' or 'domcontentloaded' for better compatibility
-    page.goto(playUrl, { waitUntil: 'domcontentloaded', timeout: 8500 } as any).catch(() => {});
+    // Go! Using 'domcontentloaded' or 'commit' via string cast for maximum speed
+    page.goto(playUrl, { waitUntil: 'domcontentloaded', timeout: 7000 } as any).catch(() => {});
     
-    // Super fast polling (every 100ms)
-    const maxRetries = 85; // 8.5 seconds
+    // Super fast polling (every 50ms instead of 100ms)
+    const maxRetries = 100; // 5 seconds total max wait
     for (let i = 0; i < maxRetries; i++) {
         if (caughtStream) break;
-        await new Promise(r => setTimeout(r, 100));
+        await new Promise(r => setTimeout(r, 50));
     }
 
     if (!caughtStream) {
-        // One last quick check in the DOM
+        // One last quick check in the DOM for data-url
         caughtStream = await page.evaluate(() => {
            const btn = document.querySelector('.hd_btn');
            return btn ? btn.getAttribute('data-url') : null;
