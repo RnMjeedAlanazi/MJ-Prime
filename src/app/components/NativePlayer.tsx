@@ -161,11 +161,10 @@ export default function NativePlayer({
         setBuffered((bufferedEnd / dur) * 100);
       }
       
-      // Auto-trigger Next Episode 5 mins before end (300s)
+      // Auto-trigger Next Episode Popup 5 mins before end (300s)
       if (nextEpisode && dur > 300 && dur - time <= 300 && !hasTriggeredNext.current) {
         hasTriggeredNext.current = true;
-        // Instead of just showing a popup, we trigger the next play immediately as requested.
-        nextEpisode.onPlay();
+        setShowNextPopup(true);
       }
     };
 
@@ -746,26 +745,28 @@ export default function NativePlayer({
         </div>
       </div>
 
-      {/* Next Episode Popup */}
+      {/* Next Episode Notification (Bottom Left) */}
       <AnimatePresence>
         {showNextPopup && nextEpisode && (
           <motion.div 
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 50 }}
-            className={styles.nextEpisodePopup}
+            initial={{ opacity: 0, x: -50, scale: 0.9 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: -50, scale: 0.9 }}
+            className={styles.nextEpisodeToast}
           >
-            <div className={styles.nextType}>الحلقة التالية خلال {nextCountdown} ثوانٍ</div>
-            <div className={styles.nextTitle}>{nextEpisode.title}</div>
-            <div className={styles.nextActions}>
+            <div className={styles.toastContent}>
+              <div className={styles.toastType}>الحلقة التالية خلال {nextCountdown}...</div>
+              <div className={styles.toastTitle}>{nextEpisode.title}</div>
+            </div>
+            <div className={styles.toastActions}>
               <button 
-                className={styles.nextPlayBtn}
+                className={styles.toastPlayBtn}
                 onClick={() => nextEpisode.onPlay()}
               >
                 تشغيل الآن
               </button>
               <button 
-                className={styles.nextCancelBtn}
+                className={styles.toastCancelBtn}
                 onClick={() => {
                   setShowNextPopup(false);
                   if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
@@ -774,6 +775,10 @@ export default function NativePlayer({
                 إلغاء
               </button>
             </div>
+            <div 
+              className={styles.toastProgress} 
+              style={{ width: `${(nextCountdown / 4) * 100}%` }} 
+            />
           </motion.div>
         )}
       </AnimatePresence>
