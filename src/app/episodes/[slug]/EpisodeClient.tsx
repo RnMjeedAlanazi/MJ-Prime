@@ -169,6 +169,9 @@ export default function EpisodeClient({ episode, currentSlug, candidates }: { ep
           <div className={styles.playerBox}>
             <NativePlayer 
               iframeSource={iframeSource} 
+              mediaId={`${episode.title}_${activeEpLink}`}
+              title={`${episode.title}`}
+              type="episode"
               nextEpisode={(() => {
                 if (!episode.episodes) return undefined;
                 const idx = episode.episodes.findIndex(ep => 
