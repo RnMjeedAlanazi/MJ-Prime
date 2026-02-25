@@ -93,7 +93,7 @@
 
 .heroTitle {
   font-size: 32px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.2;
   margin-bottom: 20px;
   font-family: 'Almarai', sans-serif;
@@ -110,6 +110,44 @@
 }
 
 .heroBtns { display: flex; gap: 15px; justify-content: center; }
+
+/* ===== GREETING ===== */
+.greeting {
+  padding: 100px 5% 20px;
+  background: var(--bg-deep);
+  position: relative;
+  z-index: 6;
+}
+
+.greetingContent {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: var(--bg-glass);
+  padding: 20px 30px;
+  border-radius: 24px;
+  border: 1px solid var(--border-glass);
+  width: fit-content;
+}
+
+.greetingAvatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  border: 2px solid var(--accent-cyan);
+}
+
+.greetingText h2 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: #fff;
+}
+
+.greetingText p {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
 
 /* ===== SECTIONS ===== */
 .section {
@@ -129,7 +167,7 @@
 
 .secTitle {
   font-size: 24px;
-  font-weight: 800;
+  font-weight: 700;
   color: #fff;
   position: relative;
   padding-right: 18px;
@@ -151,7 +189,7 @@
 .secMore {
   color: var(--text-secondary);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 400;
   transition: var(--transition-fast);
   border: 1px solid var(--border-glass);
   background: var(--bg-glass);
@@ -242,7 +280,7 @@
   border: 1px solid var(--accent-cyan);
   color: var(--accent-cyan);
   font-size: 10.5px;
-  font-weight: 800;
+  font-weight: 700;
   padding: 0 10px;
   border-radius: 6px;
   z-index: 3;
@@ -272,7 +310,7 @@
 .hoverTitle {
   color: #fff;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
   text-align: center;
   font-family: 'Almarai', sans-serif;
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Disc } from 'lucide-react';
+import { Disc, Monitor, Layers } from 'lucide-react';
 
 interface QualityBadgeProps {
   quality: string;
@@ -17,7 +17,15 @@ export default function QualityBadge({ quality, className = '', large = false }:
   let badgeClass = `qBadge ${large ? 'qBadge-large' : ''} `;
   let content: React.ReactNode = 'SD';
 
-  if (lowQuality.includes('4k') || lowQuality.includes('uhd')) {
+  if (lowQuality.includes('1080') && (lowQuality.includes('web-dl') || lowQuality.includes('webrip'))) {
+    badgeClass += 'qBadge-webdl';
+    content = (
+      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <Monitor size={large ? 16 : 12} />
+        <span>FHD WEB-DL</span>
+      </span>
+    );
+  } else if (lowQuality.includes('4k') || lowQuality.includes('uhd')) {
     badgeClass += 'qBadge-4k';
     content = '4K';
   } else if (lowQuality.includes('1080') || lowQuality.includes('fhd')) {
@@ -36,7 +44,12 @@ export default function QualityBadge({ quality, className = '', large = false }:
     content = quality.trim();
   } else if (lowQuality.includes('web-dl') || lowQuality.includes('webrip')) {
     badgeClass += 'qBadge-webdl';
-    content = 'WEB-DL';
+    content = (
+      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <Layers size={large ? 16 : 12} />
+        <span>WEB-DL</span>
+      </span>
+    );
   } else if (lowQuality.includes('hdtv')) {
     badgeClass += 'qBadge-hdtv';
     content = 'HDTV';
@@ -50,10 +63,9 @@ export default function QualityBadge({ quality, className = '', large = false }:
     badgeClass += 'qBadge-720';
     content = 'CAM';
   } else {
-    // Default fallback for other qualities
     badgeClass += 'qBadge-720';
     let text = quality.trim().toUpperCase();
-    if (text.length > 8) { // Increased limit to 8
+    if (text.length > 8) {
       text = text.substring(0, 8);
     }
     content = text;

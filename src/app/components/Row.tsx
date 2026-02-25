@@ -11,7 +11,7 @@ import QualityBadge from './QualityBadge';
 const proxyImg = (url: string) => `/api/proxy-image?url=${encodeURIComponent(url)}`;
 
 export default function Row({ title, link, items, numbered }: {
-  title: string; link?: string; items: MediaItem[]; numbered?: boolean;
+  title: React.ReactNode; link?: string; items: MediaItem[]; numbered?: boolean;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const filtered = items.filter(i => i.poster);

@@ -1,4 +1,5 @@
 import { Storage } from './storage';
+import { db, auth, ref, set, update } from './firebase';
 
 export interface UserHistoryItem {
   id: string; // Movie or Series Title
@@ -10,37 +11,47 @@ export interface UserHistoryItem {
 const HISTORY_KEY = 'faselhd_history';
 const FAVS_KEY = 'faselhd_favorites';
 
-export function saveUserView(title: string, type: 'movie' | 'series' | 'episode', genres: { name: string }[]) {
+export function getProfileStorageKey(baseKey: string, profileId?: string) {
+  const user = auth.currentUser;
+  const pId = profileId || 'main';
+  return user ? `${baseKey}_${user.uid}_${pId}` : baseKey;
+}
+
+export function saveUserView(title: string, type: 'movie' | 'series' | 'episode', genres: { name: string }[], profileId?: string) {
   try {
-    let history: UserHistoryItem[] = Storage.get(HISTORY_KEY) || [];
-    
-    // Remove if already exists so we can move it to the top
+    const storageKey = getProfileStorageKey(HISTORY_KEY, profileId);
+    let history: UserHistoryItem[] = Storage.get(storageKey) || [];
     history = history.filter(h => h.id !== title);
     
-    history.unshift({
+    const newItem: UserHistoryItem = {
       id: title,
       type,
       genres: genres.map(g => g.name),
       timestamp: Date.now()
-    });
-
-    // Keep only the last 30 views
-    if (history.length > 30) history = history.slice(0, 30);
+    };
     
-    Storage.set(HISTORY_KEY, history, 86400 * 365); // Save for a year
+    history.unshift(newItem);
+    if (history.length > 30) history = history.slice(0, 30);
+    Storage.set(storageKey, history, 86400 * 365);
+    
+    const user = auth.currentUser;
+    if (user) {
+      const pId = profileId || 'main';
+      update(ref(db, `users/${user.uid}/profiles/${pId}`), { history: history }).catch(console.error);
+    }
   } catch (e) {
     console.error('Failed to save to history', e);
   }
 }
 
-export function getUserTopGenres(): string[] {
+export function getUserTopGenres(profileId?: string): string[] {
   try {
-    const history: UserHistoryItem[] = Storage.get(HISTORY_KEY) || [];
+    const storageKey = getProfileStorageKey(HISTORY_KEY, profileId);
+    const history: UserHistoryItem[] = Storage.get(storageKey) || [];
     if (history.length === 0) return [];
     
     const genreCounts: Record<string, number> = {};
     history.forEach((item, index) => {
-      // Give more weight to more recently viewed items
       const weight = Math.max(1, 30 - index);
       item.genres.forEach(g => {
         genreCounts[g] = (genreCounts[g] || 0) + weight;
@@ -51,44 +62,52 @@ export function getUserTopGenres(): string[] {
       .sort((a, b) => b[1] - a[1])
       .map(entry => entry[0]);
   } catch (e) {
-    console.error('Failed to read history', e);
     return [];
   }
 }
 
-// ----- Favorites -----
-export function toggleFavorite(item: any): boolean {
+export function toggleFavorite(item: any, profileId?: string): boolean {
   try {
-    let favs: any[] = Storage.get(FAVS_KEY) || [];
-    
+    const storageKey = getProfileStorageKey(FAVS_KEY, profileId);
+    let favs: any[] = Storage.get(storageKey) || [];
     const existsIndex = favs.findIndex(f => f.title === item.title);
+    let added = false;
+
     if (existsIndex >= 0) {
       favs.splice(existsIndex, 1);
-      Storage.set(FAVS_KEY, favs, 86400 * 365);
-      return false; // Removed
+      added = false;
     } else {
       favs.unshift(item);
-      Storage.set(FAVS_KEY, favs, 86400 * 365);
-      return true; // Added
+      added = true;
     }
+
+    Storage.set(storageKey, favs, 86400 * 365);
+    
+    const user = auth.currentUser;
+    if (user) {
+      const pId = profileId || 'main';
+      update(ref(db, `users/${user.uid}/profiles/${pId}`), { favorites: favs }).catch(console.error);
+    }
+    
+    return added;
   } catch (e) {
-    console.error('Failed to toggle favorite', e);
     return false;
   }
 }
 
-export function getFavorites(): any[] {
+export function getFavorites(profileId?: string): any[] {
   try {
-    return Storage.get(FAVS_KEY) || [];
+    const storageKey = getProfileStorageKey(FAVS_KEY, profileId);
+    return Storage.get(storageKey) || [];
   } catch (e) {
-    console.error('Failed to read favorites', e);
     return [];
   }
 }
 
-export function isFavorite(title: string): boolean {
+export function isFavorite(title: string, profileId?: string): boolean {
   try {
-    const favs: any[] = Storage.get(FAVS_KEY) || [];
+    const storageKey = getProfileStorageKey(FAVS_KEY, profileId);
+    const favs: any[] = Storage.get(storageKey) || [];
     return favs.some(f => f.title === title);
   } catch (e) {
     return false;

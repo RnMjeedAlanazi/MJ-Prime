@@ -1,0 +1,439 @@
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 100px 20px 120px; /* Increased bottom padding */
+  min-height: 100vh;
+  direction: rtl;
+  font-family: var(--font-almarai), sans-serif;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-glass);
+  backdrop-filter: blur(10px);
+  padding: 30px;
+  border-radius: 20px;
+  border: 1px solid var(--border-glass);
+  margin-bottom: 40px;
+}
+
+.userSection {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.avatar {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+}
+
+.userInfo h1 {
+  font-size: 24px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.userInfo p {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.headerRight {
+  display: flex;
+  gap: 12px;
+}
+
+.settingsBtn {
+  background: var(--bg-glass);
+  color: #fff;
+  border: 1px solid var(--border-glass);
+  padding: 10px 20px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.settingsBtn:hover {
+  background: var(--bg-glass-hover);
+  border-color: var(--accent-cyan);
+  transform: translateY(-2px);
+}
+
+.logoutBtn {
+  background: rgba(255, 59, 48, 0.1);
+  color: #ff3b30;
+  border: 1px solid rgba(255, 59, 48, 0.2);
+  padding: 10px 20px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logoutBtn:hover {
+  background: #ff3b30;
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.tabs {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.tabs button {
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-glass);
+  padding: 12px 24px;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.tabs button.activeTab {
+  background: #fff;
+  color: #000;
+  border-color: #fff;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.historyCard {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s;
+  text-decoration: none;
+  color: inherit;
+}
+
+.historyCard:hover {
+  border-color: var(--accent-cyan);
+  transform: translateX(-5px);
+  background: var(--bg-glass-hover);
+}
+
+.cardInfo h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.progressText {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.progressBar {
+  width: 150px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+}
+
+.playIcon {
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-cyan);
+}
+
+.favCard {
+  position: relative;
+  aspect-ratio: 2/3;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border-glass);
+}
+
+.favCard img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.favOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 20px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.favCard:hover .favOverlay {
+  opacity: 1;
+}
+
+.favOverlay h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 15px;
+}
+
+.favActions {
+  display: flex;
+  gap: 10px;
+}
+
+.favPlayBtn {
+  flex: 1;
+  background: #fff;
+  color: #000;
+  padding: 8px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.favRemoveBtn {
+  background: rgba(255, 59, 48, 0.2);
+  color: #ff3b30;
+  border: none;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px;
+  color: var(--text-secondary);
+}
+
+.settingsSection {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: 20px;
+  padding: 40px;
+}
+
+.settingsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+}
+
+.formCol {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inputGroup label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.inputGroup input {
+  background: rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 12px 15px;
+  border-radius: 12px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.inputGroup input:focus {
+  border-color: var(--accent-cyan);
+  outline: none;
+  background: rgba(0,0,0,0.3);
+}
+
+.pinWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.pinWrapper svg {
+  position: absolute;
+  right: 12px;
+  color: var(--accent-purple);
+}
+
+.pinWrapper input {
+  padding-right: 40px;
+  width: 100%;
+}
+
+.saveWrap {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.saveBtnUI {
+  background: #fff;
+  color: #000;
+  border: none;
+  padding: 14px 30px;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.saveBtnUI:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255,255,255,0.2);
+}
+
+.saveBtnUI:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.saveMsg {
+  font-size: 14px;
+  color: var(--accent-cyan);
+  font-weight: 700;
+}
+
+.avatarCol label {
+  display: block;
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 15px;
+  font-weight: 600;
+}
+
+.avatarGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 15px;
+}
+
+.avatarOption {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid transparent;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.avatarOption img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatarActive {
+  border-color: var(--accent-cyan);
+  transform: scale(1.05);
+}
+
+.avatarCheck {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  background: var(--accent-cyan);
+  color: #000;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 900px) {
+  .settingsGrid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+}
+
+@media (max-width: 600px) {
+  .header {
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+  }
+  .userSection {
+    flex-direction: column;
+  }
+  .grid {
+    grid-template-columns: 1fr; /* Single column for history */
+  }
+  .grid .favCard {
+     aspect-ratio: 2/3;
+  }
+  /* If there's a specific class for favorites grid vs history grid, I'd split them, but they share .grid */
+}
+

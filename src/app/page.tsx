@@ -40,7 +40,7 @@ export default async function Home() {
       {/* Dynamic Animated Hero Slider */}
       <HeroSlider items={heroItems} />
 
-      <RecommendationRow title="اخترنا لك" candidates={uniqueCandidates} />
+      <RecommendationRow candidates={uniqueCandidates} />
 
       <Row title="أحدث الحلقات"                  link="/category/recent-series"     items={recentSeries.slice(0, 15)}  />
       <Row title="المسلسلات الأكثر مشاهدة هذا الأسبوع"  link="/category/series-top-views"  items={topSeries.slice(0, 15)}    numbered />
@@ -54,7 +54,7 @@ export default async function Home() {
       {/* FOOTER */}
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
-          <div className={styles.fLogo}>FASELHD</div>
+          <div className={styles.fLogo}>بوس الواوا</div>
           <div className={styles.fLinks}>
             <Link href="/movies">أفلام</Link>
             <Link href="/series">مسلسلات</Link>

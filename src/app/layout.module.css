@@ -51,13 +51,14 @@
 
 .logo {
   font-family: 'Outfit', sans-serif;
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: 2px;
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: 1px;
   color: var(--text-primary);
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
+  padding-top: 5px;
 }
 
 .logoAccent {
@@ -129,6 +130,165 @@
   border-color: var(--accent-purple);
   box-shadow: 0 0 15px var(--glow-purple);
   transform: scale(1.05);
+}
+
+.profileToggle {
+  width: 45px;
+  height: 45px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: none;
+  background: transparent;
+  outline: none;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.profileToggle:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+}
+
+.profileToggle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profileToggle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profileDropdown {
+  position: absolute;
+  top: 60px;
+  left: 0;
+  width: 280px;
+  background: rgba(10, 10, 20, 0.95);
+  backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  z-index: 1000;
+}
+
+.dropdownProfileInfo {
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.05), transparent);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.dropAvatarWrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: none;
+}
+
+.dropAvatarWrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dropText {
+  display: flex;
+  flex-direction: column;
+}
+
+.dropName {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.dropSub {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.dropdownBody {
+  padding: 10px;
+}
+
+.dropdownItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 15px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: right;
+  font-family: 'Almarai', sans-serif;
+}
+
+.dropdownItem:hover {
+  background: rgba(255,255,255,0.08);
+  color: var(--accent-cyan);
+}
+
+.dropIcon {
+  width: 32px;
+  height: 32px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+.dropdownItem:hover .dropIcon {
+  background: var(--accent-cyan);
+  color: #000;
+}
+
+.dropDivider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.05);
+  margin: 10px 15px;
+}
+
+.dropdownFooter {
+  padding: 10px;
+  background: rgba(0,0,0,0.2);
+}
+
+.logoutAction {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(255, 50, 50, 0.1);
+  color: #ff5050;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 50, 50, 0.2);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logoutAction:hover {
+  background: #ff5050;
+  color: #fff;
 }
 
 @media (max-width: 768px) {

@@ -4,6 +4,7 @@ import styles from './series.module.css';
 import NativePlayer from '@/app/components/NativePlayer';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/app/context/AuthContext';
 import { Play, PlayCircle, ArrowRight, Film, Star, Languages, Globe, Award, ListVideo, Heart } from 'lucide-react';
 import { saveUserView, toggleFavorite, isFavorite } from '@/lib/userProfile';
 import RecommendationRow from '@/app/components/RecommendationRow';
@@ -19,15 +20,16 @@ interface SeasonData {
 }
 
 export default function SeriesClient({ season, candidates }: { season: SeasonData, candidates: any[] }) {
+  const { activeProfile } = useAuth();
   const [activeEp, setActiveEp] = useState<EpisodeItem | null>(null);
   const [iframeSource, setIframeSource] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [favorite, setFavorite] = useState(false);
 
   useEffect(() => {
-    saveUserView(season.title, 'series', season.genres);
-    setFavorite(isFavorite(season.title));
-  }, [season.title, season.genres]);
+    saveUserView(season.title, 'series', season.genres, activeProfile?.id);
+    setFavorite(isFavorite(season.title, activeProfile?.id));
+  }, [season.title, season.genres, activeProfile?.id]);
 
   const handleFavorite = () => {
     const item = {
@@ -39,7 +41,7 @@ export default function SeriesClient({ season, candidates }: { season: SeasonDat
       genre: season.genres.map(g => g.name).join(', '),
       type: 'series'
     };
-    setFavorite(toggleFavorite(item));
+    setFavorite(toggleFavorite(item, activeProfile?.id));
   };
 
   const proxyImg = (url: string) => `/api/proxy-image?url=${encodeURIComponent(url)}`;
@@ -219,10 +221,13 @@ export default function SeriesClient({ season, candidates }: { season: SeasonDat
           </div>
           <div className={styles.playerBox}>
             {loading && <div className={styles.loadingPulse}>جاري المعالجة...</div>}
-            {!loading && iframeSource && (
+            {!loading && iframeSource && activeEp && (
               <NativePlayer 
                 iframeSource={iframeSource} 
                 nextEpisode={getNextEpisodeInfo()}
+                mediaId={`${season.title}_${activeEp.epLink}`}
+                title={`${season.title} - ${activeEp.epTitle}`}
+                type="episode"
               />
             )}
           </div>

@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Storage } from '@/lib/storage';
+import { ProgressTracker } from '@/lib/progress';
+import { useAuth } from '../context/AuthContext';
 
 interface Stream {
   quality: string;
@@ -29,15 +31,23 @@ const formatTime = (time: number) => {
 
 export default function NativePlayer({ 
   iframeSource, 
-  nextEpisode 
+  nextEpisode,
+  mediaId,
+  title,
+  type
 }: { 
   iframeSource: string;
   nextEpisode?: { title: string; onPlay: () => void };
+  mediaId: string;
+  title: string;
+  type: 'movie' | 'episode';
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   
+  const { activeProfile } = useAuth();
+
   const [streams, setStreams] = useState<Stream[]>([]);
   const [activeStream, setActiveStream] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -66,6 +76,9 @@ export default function NativePlayer({
   const [isChangingStream, setIsChangingStream] = useState(false);
   const [buffered, setBuffered] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+
+  const lastProgressSaveRef = useRef(0);
+  const hasSeekedToSavedTime = useRef(false);
   
   // Next Episode Popup
   const [showNextPopup, setShowNextPopup] = useState(false);
@@ -161,6 +174,47 @@ export default function NativePlayer({
     fetchStreams();
   }, [token, domain]);
 
+  // Resuming Progress
+  useEffect(() => {
+    if (streamReady && videoRef.current && !hasSeekedToSavedTime.current) {
+        ProgressTracker.getProgress(mediaId, activeProfile?.id).then(p => {
+            if (p && p.currentTime > 5 && (p.duration - p.currentTime > 10)) {
+                if (videoRef.current) {
+                  videoRef.current.currentTime = p.currentTime;
+                }
+            }
+            hasSeekedToSavedTime.current = true;
+        });
+    }
+  }, [streamReady, mediaId, activeProfile]);
+
+  // Reset seek flag when media changes
+  useEffect(() => {
+    hasSeekedToSavedTime.current = false;
+  }, [mediaId]);
+
+  // Immediate save on unmount or refresh
+  useEffect(() => {
+    const handleSave = () => {
+      if (videoRef.current && videoRef.current.duration > 0) {
+        ProgressTracker.saveLocal({
+          mediaId,
+          title,
+          type,
+          currentTime: videoRef.current.currentTime,
+          duration: videoRef.current.duration,
+          lastUpdated: Date.now()
+        }, activeProfile?.id);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleSave);
+    return () => {
+      handleSave();
+      window.removeEventListener('beforeunload', handleSave);
+    };
+  }, [mediaId, title, type]);
+
   useEffect(() => {
     if (!activeStream || !videoRef.current) return;
     setStreamReady(false);
@@ -203,6 +257,19 @@ export default function NativePlayer({
             if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
           }
         }
+      }
+
+      // Progress Tracking (Save every 10 seconds or when nearly finished)
+      if (dur > 0 && (Date.now() - lastProgressSaveRef.current > 10000)) {
+        lastProgressSaveRef.current = Date.now();
+        ProgressTracker.saveLocal({
+          mediaId,
+          title,
+          type,
+          currentTime: time,
+          duration: dur,
+          lastUpdated: Date.now()
+        }, activeProfile?.id);
       }
     };
 

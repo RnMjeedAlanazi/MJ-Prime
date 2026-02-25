@@ -4,6 +4,7 @@ import styles from './movieClient.module.css';
 import NativePlayer from '@/app/components/NativePlayer';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/app/context/AuthContext';
 import { Play, X, Star, Clock, ArrowRight, Heart, Film, Award } from 'lucide-react';
 import { saveUserView, toggleFavorite, isFavorite } from '@/lib/userProfile';
 import RecommendationRow from '@/app/components/RecommendationRow';
@@ -15,13 +16,14 @@ interface MovieDetails {
 }
 
 export default function MovieClient({ movie, candidates }: { movie: MovieDetails, candidates: any[] }) {
+  const { activeProfile } = useAuth();
   const [showPlayer, setShowPlayer] = useState(false);
   const [favorite, setFavorite] = useState(false);
   
   useEffect(() => {
-    saveUserView(movie.title, 'movie', movie.genres);
-    setFavorite(isFavorite(movie.title));
-  }, [movie.title, movie.genres]);
+    saveUserView(movie.title, 'movie', movie.genres, activeProfile?.id);
+    setFavorite(isFavorite(movie.title, activeProfile?.id));
+  }, [movie.title, movie.genres, activeProfile?.id]);
 
   const handleFavorite = () => {
     const item = {
@@ -33,7 +35,7 @@ export default function MovieClient({ movie, candidates }: { movie: MovieDetails
       genre: movie.genres.map(g => g.name).join(', '),
       type: 'movie'
     };
-    setFavorite(toggleFavorite(item));
+    setFavorite(toggleFavorite(item, activeProfile?.id));
   };
 
   const proxyImg = (url: string) => `/api/proxy-image?url=${encodeURIComponent(url)}`;
@@ -146,7 +148,12 @@ export default function MovieClient({ movie, candidates }: { movie: MovieDetails
                   <X size={18} /> إغلاق
                 </button>
               </div>
-              <NativePlayer iframeSource={movie.iframeSource} />
+              <NativePlayer 
+                iframeSource={movie.iframeSource} 
+                mediaId={movie.title}
+                title={movie.title}
+                type="movie"
+              />
             </div>
           </motion.div>
         )}

@@ -227,11 +227,12 @@ function extractPostDiv($: cheerio.CheerioAPI, el: any): MediaItem | null {
   const genre = genreTags.length > 0 ? genreTags.join(', ') : '';
 
   if (!rawTitle || !href || !imgPath) return null;
-  const { link, type } = processLink(href, (global as any).currentBaseUrl || 'https://web2230x.faselhdx.best');
-  return {
-    title: cleanMediaTitle(rawTitle),
-    link, poster: imgPath, quality, rating, views, genre, type,
-  };
+    const baseUrl = (global as any).currentBaseUrl || 'https://web22418x.faselhdx.best';
+    const { link, type } = processLink(href, baseUrl);
+    return {
+      title: cleanMediaTitle(rawTitle),
+      link, poster: imgPath, quality, rating, views, genre, type,
+    };
 }
 
 export async function fetchFullHomePage(): Promise<HomePageData> {
@@ -620,4 +621,137 @@ export async function fetchSeasonDetails(slug: string): Promise<SeasonDetails | 
   }
 
   return { title, story, poster, genres, year, rating, quality, status, country, language, watchLevel, totalEpisodes, episodes, seasons, seriesId };
+}
+
+export async function fetchFilteredSeries(filters: { 
+  category?: string; 
+  quality?: string; 
+  status?: string; 
+  type?: string; 
+  page?: number 
+}): Promise<MediaItem[]> {
+  const baseUrl = await getBaseUrl();
+  const url = `${baseUrl}/wp-admin/admin-ajax.php`;
+  
+  const body = `categoryfilter=${filters.category || ''}&yearfilter=&qualityfilter=${filters.quality || ''}&statusfilter=${filters.status || ''}&typesfilter=${filters.type || ''}&countryfilter=&action=fillter_all_series${filters.page && filters.page > 1 ? `&pagenum=${filters.page}` : ''}`;
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Accept': '*/*',
+        'Accept-Language': 'ar,en-US;q=0.9,en;q=0.8',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Origin': baseUrl,
+        'Referer': `${baseUrl}/series/`,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Sec-CH-UA': '"Not:A-Brand";v="99", "Chromium";v="121", "Google Chrome";v="121"',
+        'Sec-CH-UA-Mobile': '?0',
+        'Sec-CH-UA-Platform': '"Windows"',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+      },
+      body: body,
+    });
+
+    if (!res.ok) {
+        const errText = await res.text();
+        console.error(`Series Ajax ${res.status} details: ${errText} | Body: ${body}`);
+        return [];
+    }
+    const html = await res.text();
+    if (html === '0' || !html.trim()) {
+      return [];
+    }
+    const $ = cheerio.load(html);
+    const items: MediaItem[] = [];
+    
+    // Ajax response often lacks the <html> tags, treat as a fragment
+    $('.postDiv').each((_, el) => {
+        const item = extractPostDiv($, el);
+        if (item) items.push(item);
+    });
+
+    if (items.length === 0) {
+        // Fallback for direct elements
+        const fragment = cheerio.load(`<div>${html}</div>`);
+        fragment('.postDiv').each((_, el) => {
+            const item = extractPostDiv(fragment as any, el);
+            if (item) items.push(item);
+        });
+    }
+
+    return items;
+  } catch (error) {
+    console.error('Ajax series filter failed:', error);
+    return [];
+  }
+}
+
+export async function fetchFilteredMovies(filters: { 
+  category?: string; 
+  year?: string; 
+  quality?: string; 
+  type?: string; 
+  country?: string; 
+  page?: number 
+}): Promise<MediaItem[]> {
+  const baseUrl = await getBaseUrl();
+  const url = `${baseUrl}/wp-admin/admin-ajax.php`;
+  
+  const body = `typefilter=none&categoryfilter=${filters.category || ''}&yearsfilter=${filters.year || ''}&qualityfilter=${filters.quality || ''}&typesfilter=${filters.type || ''}&countryfilter=${filters.country || ''}&action=fillter_all_movies${filters.page && filters.page > 1 ? `&pagenum=${filters.page}` : ''}`;
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Accept': '*/*',
+        'Accept-Language': 'ar,en-US;q=0.9,en;q=0.8',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Origin': baseUrl,
+        'Referer': `${baseUrl}/all-movies/`,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Sec-CH-UA': '"Not:A-Brand";v="99", "Chromium";v="121", "Google Chrome";v="121"',
+        'Sec-CH-UA-Mobile': '?0',
+        'Sec-CH-UA-Platform': '"Windows"',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+      },
+      body: body,
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`Movie Ajax ${res.status} details: ${errText} | Body: ${body}`);
+      return [];
+    }
+    const html = await res.text();
+    if (html === '0' || !html.trim()) {
+      return [];
+    }
+    const $ = cheerio.load(html);
+    const items: MediaItem[] = [];
+    
+    $('.postDiv').each((_, el) => {
+        const item = extractPostDiv($, el);
+        if (item) items.push(item);
+    });
+
+    if (items.length === 0) {
+        const fragment = cheerio.load(`<div>${html}</div>`);
+        fragment('.postDiv').each((_, el) => {
+            const item = extractPostDiv(fragment as any, el);
+            if (item) items.push(item);
+        });
+    }
+
+    return items;
+  } catch (error) {
+    console.error('Ajax movie filter failed:', error);
+    return [];
+  }
 }
