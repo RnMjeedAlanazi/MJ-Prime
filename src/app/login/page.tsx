@@ -34,7 +34,7 @@ export default function LoginPage() {
     <div className={styles.authContainer}>
       <div className={styles.authCard}>
         <div className={styles.logoArea}>
-          <h1 className={styles.logoText}>MJ <span>PRIME</span></h1>
+          <h1 className={styles.logoText}>بوس <span>الواوا</span></h1>
           <p>أهلاً بك مجدداً في عالم الترفيه</p>
         </div>
 

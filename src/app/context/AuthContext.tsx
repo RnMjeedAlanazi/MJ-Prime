@@ -97,22 +97,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      if (user) {
-        await fetchProfiles(user.uid);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser);
+      
+      const publicPaths = ['/login', '/register'];
+      const isPublic = publicPaths.includes(pathname);
+
+      if (firebaseUser) {
+        await fetchProfiles(firebaseUser.uid);
+        if (isPublic) {
+          router.push('/');
+        }
       } else {
         setProfiles([]);
         setActiveProfileState(null);
+        if (!isPublic) {
+          // If we are not on a public path and not logged in, we MUST be loading/redirecting
+          setLoading(true); 
+          router.replace('/login');
+        }
       }
-      setLoading(false);
       
-      const publicPaths = ['/login', '/register'];
-      if (!user && !publicPaths.includes(pathname)) {
-        router.push('/login');
-      }
-      if (user && publicPaths.includes(pathname)) {
-        router.push('/');
+      // Only stop loading if we are NOT redirecting
+      const willRedirect = (!firebaseUser && !isPublic) || (firebaseUser && isPublic);
+      if (!willRedirect) {
+        setLoading(false);
       }
     });
 
@@ -128,7 +137,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setActiveProfile,
       refreshProfiles: () => user ? fetchProfiles(user.uid) : Promise.resolve()
     }}>
-      {!loading && children}
+      {loading ? (
+        <div style={{ 
+          height: '100vh', 
+          width: '100vw', 
+          background: '#030014', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          gap: '20px'
+        }}>
+           <h1 style={{ color: '#fff', fontSize: '32px', fontWeight: 800, fontFamily: 'Almarai, sans-serif' }}>
+             بوس <span style={{ color: '#00f0ff' }}>الواوا</span>
+           </h1>
+           <div className="spinner" style={{ 
+             width: '40px', 
+             height: '40px', 
+             border: '3px solid rgba(255,255,255,0.1)', 
+             borderTop: '3px solid #00f0ff', 
+             borderRadius: '50%',
+             animation: 'spin 1s linear infinite'
+           }} />
+           <style>{`
+             @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+           `}</style>
+        </div>
+      ) : children}
     </AuthContext.Provider>
   );
 };
