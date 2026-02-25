@@ -9,7 +9,7 @@ export interface Profile {
   id: string;
   name: string;
   avatar: string;
-  pin?: string;
+  pin?: string | null;
   settings?: {
     autoplay?: boolean;
   };
@@ -68,24 +68,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
         }
       } else {
-        const defaultProfile: Profile = {
-          id: 'main',
-          name: 'الأساسي',
-          avatar: '/api/proxy-image?url=' + encodeURIComponent('https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png'),
-          settings: { autoplay: true }
-        };
-        try {
-          await update(ref(db, `users/${uid}/profiles`), { main: defaultProfile });
-        } catch (dbErr) {
-          console.warn('Firebase Write Denied - using local session');
-        }
-        setProfiles([defaultProfile]);
-        setActiveProfileState(defaultProfile);
+        setProfiles([]);
+        setActiveProfileState(null);
       }
     } catch (e: any) {
-      console.warn('Firebase Access Denied - Falling back to local profile session.');
-      setProfiles([localDefault]);
-      setActiveProfileState(localDefault);
+      console.warn('Firebase Access Denied or Error - No profiles loaded.');
+      setProfiles([]);
+      setActiveProfileState(null);
     }
   };
 

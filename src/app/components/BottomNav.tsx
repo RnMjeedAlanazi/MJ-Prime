@@ -7,6 +7,9 @@ import { usePathname } from 'next/navigation';
 export default function BottomNav() {
   const pathname = usePathname();
 
+  const isAuthPage = ['/login', '/register', '/profiles/selector'].includes(pathname);
+  if (isAuthPage) return null;
+
   return (
     <nav className={styles.bottomNav}>
       <Link href="/" className={`${styles.navItem} ${pathname === '/' ? styles.active : ''}`}>

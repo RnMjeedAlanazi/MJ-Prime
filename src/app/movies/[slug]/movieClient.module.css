@@ -31,7 +31,7 @@
   font-weight: 800;
   line-height: 1.2;
   margin-bottom: 25px;
-  font-family: 'Almarai', sans-serif;
+  font-family: var(--font-almarai), sans-serif;
   background: linear-gradient(90deg, #fff, #cbd5e1);
   background-clip: text;
   -webkit-background-clip: text;
@@ -159,7 +159,7 @@
   color: var(--text-secondary);
   line-height: 1.8;
   margin-bottom: 35px;
-  font-family: 'Almarai', sans-serif;
+  font-family: var(--font-almarai), sans-serif;
 }
 
 .actions { display: flex; gap: 15px; flex-wrap: wrap; }
@@ -182,11 +182,11 @@
 }
 .favBtn {
   background: rgba(255, 255, 255, 0.08);
-  padding: 14px 28px;
-  border-radius: 16px;
-  font-family: 'Almarai', sans-serif;
+  padding: 14px 34px; /* Matched watchBtn */
+  border-radius: var(--pill-radius); /* Matched watchBtn */
+  font-family: var(--font-almarai), sans-serif;
   font-weight: 700;
-  font-size: 16px;
+  font-size: 15px; /* Matched watchBtn */
   cursor: pointer;
   transition: var(--transition-fast);
   backdrop-filter: blur(10px);
@@ -225,7 +225,7 @@
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 .playerTitle {
-  font-family: 'Almarai', sans-serif;
+  font-family: var(--font-almarai), sans-serif;
   color: #fff;
   font-size: 18px;
   font-weight: 800;
@@ -237,7 +237,7 @@
   background: var(--bg-glass);
   border: 1px solid var(--border-glass);
   color: var(--text-secondary);
-  font-family: 'Almarai', sans-serif;
+  font-family: var(--font-almarai), sans-serif;
   font-weight: 700;
   border-radius: var(--pill-radius);
   cursor: pointer;
@@ -256,11 +256,31 @@
 }
 
 @media (max-width: 768px) {
-  .infoSection { flex-direction: column; gap: 30px; align-items: center; text-align: center; }
+  .infoSection { 
+    flex-direction: column; 
+    gap: 25px; 
+    align-items: center; 
+    text-align: center; 
+    padding: 100px 15px 40px;
+  }
   .posterSide { flex: none; width: 220px; }
-  .title { font-size: 30px; }
-  .tags { justify-content: center; }
-  .genres { justify-content: center; }
+  .detailSide { width: 100%; display: flex; flex-direction: column; align-items: center; }
+  .title { 
+    font-size: 28px; 
+    margin-bottom: 20px;
+    letter-spacing: 0;
+  }
+  .unifiedMeta { align-items: center; width: 100%; }
+  .metaRow { justify-content: center; width: 100%; }
+  .story { 
+    font-size: 15px; 
+    text-align: center; 
+    line-height: 1.6;
+    margin-bottom: 30px;
+  }
+  .actions { justify-content: center; width: 100%; gap: 12px; }
+  .watchBtn { padding: 14px 30px; font-size: 15px; width: 100%; justify-content: center; }
+  .favBtn { padding: 12px 24px; font-size: 15px; width: 100%; justify-content: center; }
   
   .playerSection {
     padding: 0 0 100px; /* Full width on mobile */
@@ -277,7 +297,7 @@
   }
   
   .playerTitle {
-    font-size: 15px;
+    font-size: 14px;
   }
   
   .closeBtn {

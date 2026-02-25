@@ -7,17 +7,23 @@ import ProfileSelector from './ProfileSelector';
 import { auth } from '@/lib/firebase';
 import { User, Settings as SettingsIcon, LogOut, Plus, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter, usePathname } from 'next/navigation';
 
 export default function NavBar() {
   const [scrolled, setScrolled] = useState(false);
   const { user, activeProfile, setActiveProfile } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const handle = () => setScrolled(window.scrollY > 60);
     window.addEventListener('scroll', handle, { passive: true });
     return () => window.removeEventListener('scroll', handle);
   }, []);
+
+  const isAuthPage = ['/login', '/register', '/profiles/selector'].includes(pathname);
+  if (isAuthPage) return null;
 
 
 
@@ -97,7 +103,7 @@ export default function NavBar() {
                       </div>
 
                       <div className={styles.dropdownBody}>
-                        <Link href="/profile" className={styles.dropdownItem} onClick={() => setShowDropdown(false)}>
+                        <Link href="/profiles" className={styles.dropdownItem} onClick={() => setShowDropdown(false)}>
                           <div className={styles.dropIcon}><User size={18} /></div>
                           <span>ملفي المشاهدة</span>
                         </Link>
@@ -108,16 +114,17 @@ export default function NavBar() {
                         
                         <div className={styles.dropDivider} />
 
-                        <button 
-                          className={styles.dropdownItem} 
-                          onClick={() => { 
-                            setActiveProfile(null); 
-                            setShowDropdown(false);
-                          }}
-                        >
-                          <div className={styles.dropIcon}><Users size={18} /></div>
-                          <span>تبديل البروفايل</span>
-                        </button>
+                         <button 
+                           className={styles.dropdownItem} 
+                           onClick={() => { 
+                             setActiveProfile(null); 
+                             setShowDropdown(false);
+                             window.location.href = '/profiles/selector';
+                           }}
+                         >
+                           <div className={styles.dropIcon}><Users size={18} /></div>
+                           <span>تبديل البروفايل</span>
+                         </button>
                       </div>
 
                       <div className={styles.dropdownFooter}>

@@ -23,7 +23,7 @@
   gap: 5px;
   color: var(--text-secondary);
   text-decoration: none;
-  font-family: 'Almarai', sans-serif;
+  font-family: var(--font-almarai), sans-serif;
   transition: all 0.3s ease;
   flex: 1;
   padding: 10px 0;
@@ -46,5 +46,13 @@
 @media (max-width: 768px) {
   .bottomNav {
     display: flex;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .navItem {
+    gap: 3px;
+  }
+  .navItem span {
+    font-size: 10px;
   }
 }

@@ -2,7 +2,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
-import styles from './profile.module.css';
+import styles from './profiles.module.css';
 import { History, Heart, Play, Trash2, User, LogOut, Settings as SettingsIcon } from 'lucide-react';
 import { auth } from '@/lib/firebase';
 import { ProgressTracker, WatchProgress } from '@/lib/progress';
@@ -14,6 +14,10 @@ import { Shield, Check, Pencil } from 'lucide-react';
 
 const AVATARS = [
   '/api/proxy-image?url=' + encodeURIComponent('https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png'),
+  '/api/proxy-image?url=' + encodeURIComponent('https://64.media.tumblr.com/5f814915b8bb9345769d7ff7ec8440cf/30ae68ca211127d3-a7/s640x960/5dc1cddea75020609237ba79ca23cfa1de4c5e13.jpg'),
+  '/api/proxy-image?url=' + encodeURIComponent('https://i.pinimg.com/originals/20/e9/af/20e9aff0f66998657bfa599f69785edf.jpg'),
+  '/api/proxy-image?url=' + encodeURIComponent('https://64.media.tumblr.com/5fe39bf029365516a3ddf51bd5dc83d9/1b639ab913bcb07d-95/s400x600/5b80602b03c11a36e11407d1c30b6472ea18c6fc.jpg'),
+  '/api/proxy-image?url=' + encodeURIComponent('https://preview.redd.it/daemon-targaryen-by-denis-maznev-v0-j5qrcy4cj3c91.jpg?width=640&crop=smart&auto=webp&s=190de713420379f8d98b28881c47b32f1727bff0'),
   '/api/proxy-image?url=' + encodeURIComponent('https://mir-s3-cdn-cf.behance.net/project_modules/disp/366be133850498.56ba69ac36858.png'),
   '/api/proxy-image?url=' + encodeURIComponent('https://mir-s3-cdn-cf.behance.net/project_modules/disp/1bdc9a33850498.56ba69ac2ba5b.png'),
   '/api/proxy-image?url=' + encodeURIComponent('https://mir-s3-cdn-cf.behance.net/project_modules/disp/bf6e4a33850498.56ba69ac3064f.png'),
@@ -36,8 +40,8 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user && activeProfile) {
-      ProgressTracker.getAllProgress(activeProfile.id).then(data => {
-        setHistory(data.sort((a, b) => b.lastUpdated - a.lastUpdated));
+      ProgressTracker.getAllProgress(activeProfile.id).then((data: WatchProgress[]) => {
+        setHistory(data.sort((a: WatchProgress, b: WatchProgress) => b.lastUpdated - a.lastUpdated));
       });
       setFavorites(getFavorites(activeProfile.id));
       
@@ -95,7 +99,7 @@ export default function ProfilePage() {
       <header className={styles.header}>
         <div className={styles.userSection}>
           <div className={styles.avatar}>
-            {activeProfile ? <img src={activeProfile.avatar} alt={activeProfile.name} /> : <User size={30} />}
+            {activeProfile ? <img src={activeProfile.avatar} alt={activeProfile.name} /> : <User size={60} />}
           </div>
           <div className={styles.userInfo}>
             <h1>{activeProfile?.name || user.displayName || 'مستخدم'}</h1>

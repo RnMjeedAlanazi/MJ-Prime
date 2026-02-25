@@ -39,8 +39,8 @@
   font-weight: 900;
   line-height: 1.1;
   margin-bottom: 24px;
-  font-family: 'Almarai', sans-serif;
-  letter-spacing: -2px;
+  font-family: var(--font-almarai), sans-serif;
+  letter-spacing: -1px;
   background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
   background-clip: text;
   -webkit-background-clip: text;
@@ -50,7 +50,7 @@
 
 .sectionTitle {
   color: #fff;
-  font-family: 'Almarai', sans-serif;
+  font-family: var(--font-almarai), sans-serif;
 
   font-size: 20px;
   font-weight: 800;
@@ -90,7 +90,7 @@
   padding: 12px 24px;
   background: var(--bg-glass);
   color: var(--text-primary);
-  font-family: 'Almarai', sans-serif;
+  font-family: var(--font-almarai), sans-serif;
   font-weight: 700;
   border-radius: var(--pill-radius);
   text-decoration: none;
@@ -321,14 +321,14 @@
   flex-wrap: wrap; 
 }
 .backBtn {
-  padding: 18px 45px;
+  padding: 14px 34px;
   background: white;
   border: none;
   color: #000;
-  font-family: 'Almarai', sans-serif;
-  font-weight: 900;
+  font-family: var(--font-almarai), sans-serif;
+  font-weight: 700;
   font-size: 16px;
-  border-radius: 12px;
+  border-radius: 16px;
   cursor: pointer;
   transition: var(--transition-fast);
   display: flex; align-items: center; gap: 15px;
@@ -343,11 +343,11 @@
 
 .favBtn {
   background: rgba(255, 255, 255, 0.08); 
-  padding: 14px 28px;
-  border-radius: 16px;
-  font-family: 'Almarai', sans-serif;
+  padding: 14px 34px; /* Matched premiumBtn and backBtn */
+  border-radius: 16px; /* Matched premiumBtn and backBtn */
+  font-family: var(--font-almarai), sans-serif;
   font-weight: 700;
-  font-size: 16px;
+  font-size: 16px; /* Matched backBtn */
   cursor: pointer;
   transition: var(--transition-fast);
   backdrop-filter: blur(10px);
@@ -370,7 +370,7 @@
 .epSectionTitle {
   font-size: 22px;
   font-weight: 900;
-  font-family: 'Almarai', sans-serif;
+  font-family: var(--font-almarai), sans-serif;
   margin-bottom: 30px;
   padding-right: 20px;
   position: relative;
@@ -428,7 +428,7 @@
   font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
-  font-family: 'Almarai', sans-serif;
+  font-family: var(--font-almarai), sans-serif;
   text-align: right;
   white-space: nowrap;
   overflow: hidden;
@@ -479,9 +479,30 @@
 }
 
 @media (max-width: 768px) {
-  .infoSection { flex-direction: column; gap: 30px; align-items: center; text-align: center; }
+  .infoSection { 
+    flex-direction: column; 
+    gap: 25px; 
+    align-items: center; 
+    text-align: center; 
+    padding: 100px 15px 40px;
+  }
   .posterSide { flex: none; width: 220px; }
-  .title { font-size: 30px; }
-  .tags { justify-content: center; }
-  .genres { justify-content: center; }
+  .detailSide { width: 100%; display: flex; flex-direction: column; align-items: center; }
+  .title { 
+    font-size: 28px; 
+    margin-bottom: 20px;
+    letter-spacing: 0;
+  }
+  .unifiedMeta { align-items: center; }
+  .metaRow { justify-content: center; }
+  .metaItems { justify-content: center; }
+  .story { 
+    font-size: 15px; 
+    text-align: center; 
+    line-height: 1.6;
+    margin-bottom: 30px;
+  }
+  .actions { justify-content: center; width: 100%; gap: 12px; }
+  .backBtn { padding: 14px 30px; font-size: 15px; width: 100%; justify-content: center; }
+  .favBtn { padding: 12px 24px; font-size: 15px; width: 100%; justify-content: center; }
 }

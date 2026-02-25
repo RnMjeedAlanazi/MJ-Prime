@@ -133,9 +133,9 @@
 }
 
 .profileToggle {
-  width: 45px;
-  height: 45px;
-  border-radius: 12px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
   overflow: hidden;
   border: none;
   background: transparent;
@@ -188,7 +188,7 @@
 .dropAvatarWrap {
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: 50%;
   overflow: hidden;
   border: none;
 }
@@ -234,7 +234,7 @@
   cursor: pointer;
   transition: all 0.2s;
   text-align: right;
-  font-family: 'Almarai', sans-serif;
+  font-family: var(--font-almarai), sans-serif;
 }
 
 .dropdownItem:hover {
@@ -292,6 +292,20 @@
 }
 
 @media (max-width: 768px) {
-  .navbar { width: 95%; top: 10px; }
+  .navbar { 
+    width: 92%; 
+    top: 10px; 
+    height: 60px;
+  }
+  .navbarTop {
+    width: 100%;
+    border-radius: 0;
+  }
   .navLinks { display: none; }
+  .navContent { padding: 0 12px; }
+  .logo { font-size: 22px; }
+  .searchBtn, .profileToggle {
+    width: 38px;
+    height: 38px;
+  }
 }

@@ -1,0 +1,41 @@
+
+.container {
+  min-height: 100vh;
+  background: radial-gradient(circle at center, #1a1a2e 0%, #030014 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  font-family: var(--font-almarai), sans-serif;
+  text-align: center;
+}
+
+.header {
+  margin-bottom: 40px;
+  max-width: 800px;
+}
+
+.welcomeTitle {
+  font-size: 48px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 15px;
+}
+
+.brand {
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.welcomeSub {
+  font-size: 18px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.selectorWrapper {
+  width: 100%;
+}

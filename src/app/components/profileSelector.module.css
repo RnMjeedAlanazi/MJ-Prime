@@ -11,6 +11,15 @@
   direction: rtl;
 }
 
+.pageWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-almarai), sans-serif;
+  direction: rtl;
+  width: 100%;
+}
+
 .container {
   text-align: center;
 }
@@ -35,7 +44,8 @@
   align-items: center;
   gap: 15px;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: var(--transition-smooth);
+  position: relative; /* Ensure descendants with position: absolute are relative to this */
 }
 
 .profileItem:hover {
@@ -45,11 +55,11 @@
 .avatarWrapper {
   width: 140px;
   height: 140px;
-  border-radius: 12px;
+  border-radius: 50%;
   overflow: hidden;
   border: 3px solid transparent;
-  transition: border-color 0.3s;
-  position: relative;
+  transition: var(--transition-smooth);
+  position: relative; /* Anchor for badges and buttons */
 }
 
 .avatarWrapper.active {
@@ -64,12 +74,43 @@
   position: absolute;
   inset: 0;
   border: 4px solid transparent;
-  border-radius: var(--radius-lg, 12px);
+  border-radius: 50%;
   transition: all 0.2s;
 }
 
 .profileItem:hover .avatarHoverBorder {
   border-color: #fff;
+}
+
+.deleteBtn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 59, 48, 0.95);
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 100;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 12px rgba(255, 59, 48, 0.3);
+  backdrop-filter: blur(4px);
+}
+
+.deleteBtn:hover {
+  background: #ff3b30;
+  transform: scale(1.15) rotate(5deg);
+  box-shadow: 0 0 20px rgba(255, 59, 48, 0.6);
+  border-color: #fff;
+}
+
+.deleteBtn svg {
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
 }
 
 .editOverlay {
@@ -116,48 +157,69 @@
   font-size: 20px;
   color: #808080;
   font-weight: 500;
-  transition: color 0.2s;
+  transition: var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nameLockIcon {
+  color: #808080;
 }
 
 .profileItem:hover .profileName {
   color: #fff;
 }
 
+.profileItem:hover .nameLockIcon {
+  color: #fff;
+}
+
 .manageBtn {
-  margin-top: 100px;
+  margin-top: 80px;
   background: transparent;
-  border: 1px solid #808080;
-  color: #808080;
-  padding: 8px 30px;
-  font-size: 18px;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.6);
+  padding: 12px 40px;
+  font-size: 16px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 2px;
   cursor: pointer;
-  transition: all 0.2s;
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .manageBtn:hover {
   border-color: #fff;
   color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
 }
 
 .doneBtn {
-  margin-top: 100px;
+  margin-top: 80px;
   background: #fff;
-  border: 1px solid #fff;
+  border: 1.5px solid #fff;
   color: #000;
-  padding: 8px 40px;
-  font-size: 18px;
+  padding: 12px 40px;
+  font-size: 16px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 2px;
   cursor: pointer;
-  transition: all 0.2s;
+  border-radius: 8px;
+  box-shadow: 0 10px 20px rgba(255, 255, 255, 0.2);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .doneBtn:hover {
   background: var(--accent-cyan);
   border-color: var(--accent-cyan);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 240, 255, 0.3);
 }
 
 .addBtn {
@@ -169,7 +231,7 @@
   align-items: center;
   justify-content: center;
   color: #555;
-  transition: all 0.3s;
+  transition: var(--transition-smooth);
 }
 
 .profileItem:hover .addBtn {
@@ -177,6 +239,157 @@
   color: #fff;
 }
 
+/* New Netflix-style PIN UI */
+.pinOverlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at center, #1a1a2e 0%, #030014 100%);
+  z-index: 20000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.pinContent {
+  width: 100%;
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.pinSubtitle {
+  font-size: 16px;
+  color: var(--accent-cyan);
+  opacity: 0.9;
+  font-weight: 700;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.pinTitle {
+  font-size: 32px;
+  font-weight: 900;
+  color: #fff;
+  margin-bottom: 40px;
+}
+
+.pinDisplay {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 40px;
+}
+
+.pinBox {
+  width: 70px;
+  height: 70px;
+  border: 2px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.03);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-smooth);
+  border-radius: 12px;
+}
+
+.pinBoxActive {
+  border-color: var(--accent-cyan);
+  background: rgba(0, 242, 255, 0.05);
+  box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
+  transform: translateY(-5px);
+}
+
+.pinBoxFilled {
+  border-color: var(--accent-purple);
+  background: rgba(138, 43, 226, 0.05);
+}
+
+.dot {
+  width: 14px;
+  height: 14px;
+  background: var(--accent-cyan);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--accent-cyan);
+}
+
+.pinErr {
+  color: #ff3b30;
+  margin-bottom: 15px;
+  font-weight: 700;
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  width: 100%;
+  max-width: 360px;
+  margin-bottom: 30px;
+}
+
+.key {
+  aspect-ratio: 1.6;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #fff;
+  font-size: 26px;
+  font-weight: 800;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-fast);
+}
+
+.key:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+.key:active {
+  background: var(--accent-cyan);
+  color: #000;
+  transform: scale(0.92);
+}
+
+.keyEmpty {
+  background: transparent;
+  border: none;
+  cursor: default;
+}
+
+.keyDel {
+  background: rgba(255,255,255,0.02);
+}
+
+.pinCancel {
+  background: transparent;
+  border: none;
+  color: #888;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 10px 20px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.pinCancel:hover {
+  color: #fff;
+}
+
+/* Old Modal Styles for Deletion */
 .pinModal {
   position: fixed;
   inset: 0;
@@ -188,85 +401,22 @@
   justify-content: center;
 }
 
-.pinBox {
+.pinBoxModal {
   background: #111;
   padding: 40px;
   border-radius: 20px;
   text-align: center;
   width: 90%;
   max-width: 400px;
+  border: 1px solid rgba(255,255,255,0.1);
 }
 
-.pinBox h3 {
+.pinBoxModal h3 {
   margin-bottom: 25px;
-}
-
-.pinBox input {
-  width: 100%;
-  background: #222;
-  border: 1px solid #333;
-  padding: 15px;
-  border-radius: 10px;
-  color: #fff;
-  font-size: 24px;
-  text-align: center;
-  letter-spacing: 12px;
-  outline: none;
-  margin-bottom: 20px;
-}
-
-.pinBox input:focus {
-  border-color: var(--accent-cyan);
-}
-
-.err {
-  color: #ff3b30;
-  margin-bottom: 15px;
-}
-
-.pinActions {
-  display: flex;
-  gap: 15px;
-}
-
-.confirmBtn {
-  flex: 1;
-  background: #fff;
-  color: #000;
-  border: none;
-  padding: 12px;
-  border-radius: 10px;
   font-weight: 800;
-  cursor: pointer;
-}
-
-.cancelBtn {
-  flex: 1;
-  background: #222;
-  color: #fff;
-  border: none;
-  padding: 12px;
-  border-radius: 10px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-@media (max-width: 600px) {
-  .profilesGrid {
-    flex-wrap: wrap;
-    gap: 20px;
-  }
-  .avatarWrapper, .addBtn {
-    width: 100px;
-    height: 100px;
-  }
-  .container h1 {
-    font-size: 24px;
-  }
 }
 
 .pinSecure {
-  /* Non-standard property to mask text without triggering browser password managers */
   -webkit-text-security: disc !important;
 }
 
@@ -286,7 +436,7 @@
   cursor: pointer;
   color: #fff;
   opacity: 0.6;
-  transition: opacity 0.2s;
+  transition: var(--transition-fast);
 }
 
 .backBtn:hover {
@@ -308,14 +458,15 @@
 }
 
 .avatarLarge {
-  width: 120px;
-  height: 120px;
-  border-radius: 8px;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
   overflow: hidden;
+  border: 4px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 10px 20px rgba(0,0,0,0.5);
   cursor: pointer;
   position: relative;
-  transition: transform 0.2s;
+  transition: var(--transition-smooth);
 }
 
 .avatarLarge:hover {
@@ -350,19 +501,23 @@
 
 .nameInput {
   width: 100%;
-  background: #333;
-  border: 1px solid transparent;
-  padding: 15px 20px;
-  font-size: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 16px 20px;
+  font-size: 16px;
+  font-weight: 500;
   color: #fff;
-  border-radius: 4px;
+  border-radius: 12px;
   outline: none;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .nameInput:focus {
-  background: #444;
-  border-color: #666;
+  background: rgba(255, 255, 255, 0.07);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.15), inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .pinInputContainer {
@@ -398,10 +553,12 @@
   background: #111;
   border: 1px solid #333;
   width: 100%;
-  max-width: 450px;
-  border-radius: 20px;
-  padding: 30px;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  max-width: 650px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.8);
 }
 
 .avatarPickerHeader {
@@ -421,51 +578,86 @@
   border: none;
   color: #888;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: var(--transition-fast);
 }
 
 .avatarPickerHeader button:hover {
   color: #fff;
 }
 
-.avatarGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: 15px;
+.avatarCarouselContainer {
+  margin: 20px 0 30px;
+  width: 100%;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 20px 0 10px;
 }
 
-.avOpt {
-  aspect-ratio: 1;
-  width: 100%;
-  height: auto;
-  border-radius: 8px;
+.avatarCarouselContainer::-webkit-scrollbar {
+  height: 4px;
+  display: block;
+}
+
+.avatarCarouselContainer::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.avatarCarouselContainer::-webkit-scrollbar-thumb {
+  background: var(--accent-cyan);
+  border-radius: 10px;
+}
+
+.avatarSlider {
+  display: flex;
+  gap: 25px;
+  padding: 0 40px;
+  width: max-content;
+}
+
+.avCircleOpt {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
   overflow: hidden;
   cursor: pointer;
-  position: relative;
-  border: 2px solid transparent;
-  transition: all 0.2s;
+  border: 4px solid transparent;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  flex-shrink: 0;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+  scroll-snap-align: center;
 }
 
-.avOpt img {
+.avCircleOpt img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.avActive {
-  border-color: #fff;
+.avCircleActive {
+  border-color: #28a745; /* Success Green */
   transform: scale(1.1);
+  box-shadow: 0 0 20px rgba(40, 167, 69, 0.4);
 }
 
-.avCheck {
-  position: absolute;
-  top: 2px;
-  right: 2px;
+.avatarConfirmBtn {
+  width: 100%;
   background: var(--accent-cyan);
   color: #000;
-  border-radius: 50%;
-  padding: 1px;
+  border: none;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: var(--transition-smooth);
 }
+
+.avatarConfirmBtn:hover {
+  background: #fff;
+  transform: translateY(-2px);
+}
+
 
 .formActionsUI {
   display: flex;
@@ -517,3 +709,111 @@
   border-color: #fff;
   color: #fff;
 }
+
+.pinDisplaySmall {
+  display: flex;
+  gap: 10px;
+  position: relative;
+}
+
+.pinBoxSmall {
+  width: 45px;
+  height: 45px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.2);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dotSmall {
+  width: 8px;
+  height: 8px;
+  background: var(--accent-cyan);
+  border-radius: 50%;
+}
+
+.hiddenPinInput {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+}
+
+.addPinToggle {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 16px 24px;
+  width: 100%;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  backdrop-filter: blur(5px);
+}
+
+.addPinToggle:hover {
+  background: rgba(0, 242, 255, 0.08);
+  border-color: rgba(0, 242, 255, 0.4);
+  color: var(--accent-cyan);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 15px rgba(0, 242, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.addPinToggle svg {
+  transition: transform 0.4s ease;
+}
+
+.addPinToggle:hover svg {
+  transform: scale(1.1) rotate(-5deg);
+}
+
+.pinSetIndicator {
+  background: rgba(40, 167, 69, 0.1);
+  border: 1px solid rgba(40, 167, 69, 0.3);
+  padding: 16px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.pinSetInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #28a745;
+  font-weight: 600;
+}
+
+.pinLockedIcon {
+  color: #28a745;
+}
+
+
+.removePinBtn {
+  background: transparent;
+  border: none;
+  color: #ff3b30;
+  font-size: 13px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  margin-top: 5px;
+}
+
+.removePinBtn:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+

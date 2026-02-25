@@ -1,7 +1,7 @@
 
 'use client';
 import { db, ref, set, update, auth } from '@/lib/firebase';
-import { User, Shield, Image as ImageIcon, Check, Plus, Trash2, ArrowLeft, Pencil, Play } from 'lucide-react';
+import { User, Shield, Image as ImageIcon, Check, Plus, Trash2, ArrowLeft, Pencil, Play, Lock } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import styles from './settings.module.css';
 import { useAuth } from '@/app/context/AuthContext';
@@ -25,6 +25,11 @@ export default function SettingsPage() {
   const [newName, setNewName] = useState('');
   const [newPin, setNewPin] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
+  
+  // PIN Management State
+  const [showPinDialog, setShowPinDialog] = useState(false);
+  const [tempPin, setTempPin] = useState('');
+  const [pinError, setPinError] = useState('');
 
   useEffect(() => {
     if (activeProfile) {
@@ -98,6 +103,34 @@ export default function SettingsPage() {
     }
   };
 
+  const handleUpdatePin = async (newPinValue: string) => {
+    if (!user || !activeProfile) return;
+    try {
+      setLoading(true);
+      await update(ref(db, `users/${user.uid}/profiles/${activeProfile.id}`), {
+        pin: newPinValue || null
+      });
+      await refreshProfiles();
+      setShowPinDialog(false);
+      setTempPin('');
+    } catch (e) {
+      console.error(e);
+      alert('فشل تحديث رمز PIN');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKeyClick = (num: string) => {
+    if (tempPin.length < 4) {
+      const nextPin = tempPin + num;
+      setTempPin(nextPin);
+      if (nextPin.length === 4) {
+        handleUpdatePin(nextPin);
+      }
+    }
+  };
+
   const handleCreateProfile = async () => {
     if (!user || !newName.trim()) return;
     if (profiles.length >= 5) {
@@ -146,7 +179,6 @@ export default function SettingsPage() {
                     <div className={styles.emailText}>{user?.email}</div>
                     <div className={styles.passwordText}>كلمة المرور: ********</div>
                 </div>
-                <button className={styles.actionLink} onClick={() => alert('ميزة تغيير البريد قريباً')}>تغيير البريد الإلكتروني</button>
               </div>
             </div>
           </section>
@@ -162,20 +194,20 @@ export default function SettingsPage() {
                     <span className={styles.planBadge}>FHD</span>
                     الخطة المميزة
                 </div>
-                <button className={styles.actionLink}>تغيير الخطة</button>
               </div>
             </div>
           </section>
         )}
 
         {/* Playback Settings Section */}
-        <section className={styles.settingsSection}>
-           <div className={styles.sectionLabel}>إعدادات التشغيل</div>
-           <div className={styles.sectionContent}>
-             <div className={styles.settingRow}>
+        {activeProfile && (
+          <section className={styles.settingsSection}>
+            <div />
+            <div className={styles.sectionContent}>
+              <div className={styles.settingRow}>
                 <div className={styles.settingMeta}>
-                   <h4>التشغيل التلقائي</h4>
-                   <p>بدء الحلقة التالية تلقائياً في جميع الأجهزة.</p>
+                  <h4>التشغيل التلقائي</h4>
+                  <p>تشغيل الحلقة التالية تلقائياً عند انتهاء الحالية.<br/>(يسري على البروفايل الحالي فقط)</p>
                 </div>
                 <button 
                   className={`${styles.toggle} ${autoplay ? styles.toggleOn : ''}`}
@@ -183,86 +215,92 @@ export default function SettingsPage() {
                 >
                    <div className={styles.toggleDot} />
                 </button>
-             </div>
-           </div>
-        </section>
+              </div>
+            </div>
+          </section>
+        )}
 
-        {/* Profile & Parental Controls Section */}
+        {/* Profile Lock Section */}
+        {activeProfile && (
+          <section className={styles.settingsSection}>
+            <div />
+            <div className={styles.sectionContent}>
+              <div className={styles.profileManageRow} style={{ borderBottom: 'none', marginBottom: 0, paddingBottom: 0 }}>
+                <div className={styles.settingMeta}>
+                  <h4>قفل الملف الشخصي</h4>
+                  <p>تأمين ملفك الشخصي بطلب رمز PIN للدخول.</p>
+                </div>
+                <button 
+                  className={styles.lockManageBtnMain}
+                  onClick={() => {
+                    if (activeProfile.pin) {
+                      handleUpdatePin(''); // Remove PIN
+                    } else {
+                      setShowPinDialog(true);
+                    }
+                  }}
+                >
+                  {activeProfile.pin ? 'إزالة قفل الملف' : 'تفعيل قفل الملف'}
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Profiles List Section */}
         <section className={styles.settingsSection}>
           <div className={styles.sectionLabel}>الملفات الشخصية</div>
           <div className={styles.sectionContent}>
-              <div className={styles.profilesList}>
-                {profiles.map(p => (
-                  <div key={p.id} className={styles.profileItem}>
-                    <img src={p.avatar} alt={p.name} className={styles.profileThumb} />
-                    <div className={styles.profileName}>
-                      {p.name}
-                      {p.id === 'main' && <span className={styles.mainBadge}>الأساسي</span>}
-                    </div>
-                    <div className={styles.profileActions}>
-                      <button className={styles.actionLink} onClick={() => window.location.href='/profile'}>تغيير</button>
-                      
-                      {/* ONLY Main Profile can delete other profiles */}
-                      {activeProfile?.id === 'main' && p.id !== 'main' && (
-                          <button 
-                              className={`${styles.actionLink} ${styles.deleteLink}`} 
-                              onClick={() => handleDeleteProfile(p.id)}
-                              disabled={loading}
-                          >
-                              <Trash2 size={14} /> حذف
-                          </button>
-                      )}
-                    </div>
+            <div className={styles.profilesList}>
+              {profiles.map(p => (
+                <div key={p.id} className={styles.profileItem}>
+                  <img src={p.avatar} alt={p.name} className={styles.profileThumb} />
+                  <div className={styles.profileName}>
+                    {p.name}
+                    {p.id === 'main' && <span className={styles.mainBadge}>الأساسي</span>}
+                    {p.pin && <Lock size={14} color="#a0a0a0" />}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* PIN Management Dialog */}
+        {showPinDialog && (
+          <div className={styles.pinOverlay}>
+            <div className={styles.pinContent}>
+              <h2 className={styles.pinSubtitle}>حماية الملف الشخصي</h2>
+              <h1 className={styles.pinTitle}>أدخل 4 أرقام لإنشاء رمز PIN</h1>
+              
+              <div className={styles.pinDisplay}>
+                {[0, 1, 2, 3].map(i => (
+                  <div key={i} className={`${styles.pinBox} ${tempPin.length === i ? styles.pinBoxActive : ''} ${tempPin.length > i ? styles.pinBoxFilled : ''}`}>
+                    {tempPin.length > i ? <div className={styles.dot} /> : null}
                   </div>
                 ))}
               </div>
 
-              {!showNewProfileForm ? (
-                profiles.length < 5 && (
-                  <button className={styles.addProfileBtn} onClick={() => setShowNewProfileForm(true)}>
-                    <Plus size={18} /> إضافة بروفايل جديد
+              <div className={styles.keypad}>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, '', 0, 'del'].map((k, i) => (
+                  <button 
+                    key={i} 
+                    className={`${styles.key} ${k === '' ? styles.keyEmpty : ''}`}
+                    onClick={() => {
+                      if (k === 'del') setTempPin(prev => prev.slice(0, -1));
+                      else if (k !== '') handleKeyClick(k.toString());
+                    }}
+                    disabled={k === ''}
+                  >
+                    {k === 'del' ? <ArrowLeft size={24} /> : k}
                   </button>
-                )
-              ) : (
-                <div className={styles.newProfileForm}>
-                  <h3>إضافة بروفايل جديد</h3>
-                  <div className={styles.formRow}>
-                    <div className={styles.avatarPicker}>
-                      {AVATARS.map(av => (
-                        <img 
-                          key={av} 
-                          src={av} 
-                          className={selectedAvatar === av ? styles.activeAv : ''} 
-                          onClick={() => setSelectedAvatar(av)}
-                        />
-                      ))}
-                    </div>
-                    <div className={styles.inputArea}>
-                      <input 
-                        value={newName} 
-                        onChange={e => setNewName(e.target.value)} 
-                        placeholder="اسم البروفايل..." 
-                      />
-                      <input 
-                        type="text"
-                        autoComplete="off"
-                        data-lpignore="true"
-                        maxLength={4}
-                        value={newPin} 
-                        onChange={e => setNewPin(e.target.value.replace(/\D/g, ''))} 
-                        placeholder="رمز PIN (اختياري)..." 
-                        className={styles.pinSecureInput}
-                      />
-                      <div className={styles.formActions}>
-                        <button className={styles.confirmBtn} onClick={handleCreateProfile} disabled={loading}>إنشاء</button>
-                        <button className={styles.cancelLink} onClick={() => setShowNewProfileForm(false)}>إلغاء</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+                ))}
+              </div>
+
+              <button className={styles.pinCancel} onClick={() => { setShowPinDialog(false); setTempPin(''); }}>إلغاء</button>
+            </div>
           </div>
-        </section>
+        )}
 
         {/* Dangerous Zone Section */}
         {activeProfile?.id === 'main' && (

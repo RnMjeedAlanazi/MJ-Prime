@@ -16,6 +16,7 @@
   --pill-radius: 30px;
   --transition-fast: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --transition-smooth: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-premium: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
   --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
@@ -25,15 +26,41 @@
   padding: 0; 
   -webkit-tap-highlight-color: transparent;
 }
+
+a, button, input, select, textarea, .premiumBtn {
+  outline: none;
+}
+
+/* Specific Smooth Transitions for Buttons and Premium Selectors */
+button, 
+.premiumBtn,
+[class*="Btn"],
+[class*="button"],
+[class*="Toggle"],
+a,
+input,
+select,
+textarea,
+[class*="Item"],
+[class*="Card"] {
+  transition: var(--transition-smooth);
+}
+
+/* Extra smooth for main navigation */
+.navLink, .navItem {
+  transition: var(--transition-premium) !important;
+}
 html { 
   scroll-behavior: smooth; 
   height: -webkit-fill-available;
+  --font-almarai: var(--font-ibm-plex-arabic);
+  --font-outfit: var(--font-outfit);
 }
 
 body {
   background-color: var(--bg-deep);
   color: var(--text-primary);
-  font-family: var(--font-almarai), var(--font-outfit), sans-serif;
+  font-family: var(--font-ibm-plex-arabic), var(--font-outfit), sans-serif;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -43,6 +70,12 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
   min-height: 100vh;
   min-height: -webkit-fill-available;
+  width: 100%;
+}
+
+html {
+  overflow-x: hidden;
+  width: 100%;
 }
 
 /* Beautiful Aurora Background Effect */
@@ -81,7 +114,43 @@ body::after {
 
 a { color: inherit; text-decoration: none; }
 img { display: block; max-width: 100%; border-radius: var(--card-radius); }
-button { font-family: inherit; }
+
+input, button, select, textarea {
+  font-family: inherit;
+}
+
+/* Global Premium Input Design */
+.premiumInput {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 14px 20px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.premiumInput:focus {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 4px rgba(0, 240, 255, 0.1), inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.premiumInput::placeholder {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.premiumInput:hover:not(:focus) {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.2);
+}
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: var(--bg-deep); }
@@ -136,9 +205,10 @@ button { font-family: inherit; }
   gap: 5px;
   z-index: 10;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
-  font-family: 'Outfit', sans-serif;
-  letter-spacing: 0.1px;
+  font-family: var(--font-outfit), sans-serif;
+  letter-spacing: 0.2px;
 }
+
 
 .imdbLogo {
   background: #f5c518;
@@ -151,7 +221,7 @@ button { font-family: inherit; }
   align-items: center;
   justify-content: center;
   line-height: 1;
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-outfit), sans-serif;
   flex-shrink: 0;
   text-transform: uppercase;
   margin-top: -1px;
@@ -194,17 +264,19 @@ button { font-family: inherit; }
   z-index: 5;
   box-shadow: 0 4px 10px rgba(0,0,0,0.3);
   transition: all 0.2s ease;
-  font-size: 11px;
-  font-weight: 700;
-  font-family: 'Outfit', sans-serif;
-  letter-spacing: 0.5px;
+  font-size: 10px;
+  font-weight: 800;
+  font-family: var(--font-outfit), sans-serif;
+  letter-spacing: 0.6px;
 }
 
 .qBadge-large {
   height: 36px;
-  font-size: 14px;
-  padding: 0 14px;
-  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 800;
+  padding: 0 16px;
+  border-radius: 10px;
+  min-width: 50px;
 }
 
 .qBadge-4k {
@@ -241,6 +313,26 @@ button { font-family: inherit; }
   main {
     padding-bottom: 80px;
   }
+  .qBadge, .ratingBadgeOverlay {
+    height: 17px; 
+    font-size: 7.5px;
+    padding: 0 4px;
+    top: 4px;
+    max-width: 45%; 
+    white-space: nowrap;
+  }
+  .qBadge-large {
+    height: 20px !important;
+    font-size: 9.5px !important;
+    padding: 0 8px !important;
+    border-radius: 5px !important;
+    min-width: 40px !important;
+  }
+  .ratingBadgeOverlay { left: 4px; }
+  .qBadge { right: 4px; }
+  .imdbLogo { font-size: 7px; padding: 1px 2px; }
+  .qBadge svg { width: 10px !important; height: 10px !important; }
+  .qBadge-large svg { width: 11px !important; height: 11px !important; }
 }
 
 .qBadge-season {
