@@ -6,21 +6,27 @@ export const runtime = 'edge';
 async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-    const baseUrl = await getBaseUrl();
-    const response = await fetch(url, {
+      const baseUrl = await getBaseUrl();
+      // Use standard fetch without custom AbortSignal first for simplicity
+      const response = await fetch(url, {
         headers: {
           'Referer': `${baseUrl.replace(/\/$/, '')}/video_player`,
           'Origin': baseUrl.replace(/\/$/, ''),
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-          'Accept': '*/*',
+          'Accept': '*/*, application/vnd.apple.mpegurl',
           'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8',
-        },
-        signal: AbortSignal.timeout(12000), 
+        }
       });
+      // If server returns error 5xx or 429, we should retry!
+      if (!response.ok && (response.status >= 500 || response.status === 429)) {
+         throw new Error(`HTTP Error: ${response.status}`);
+      }
       return response;
     } catch (err) {
       if (attempt < maxRetries) {
-        await new Promise(r => setTimeout(r, 200 * attempt));
+        console.warn(`[proxy-stream] attempt ${attempt} failed, retrying for ${url.substring(0, 50)}...`);
+        // Progressive backoff delay
+        await new Promise(r => setTimeout(r, 500 * attempt));
         continue;
       }
       throw err;
@@ -52,7 +58,10 @@ export async function GET(request: Request) {
 
     if (isM3U8) {
       let text = await response.text();
-      const baseUrl = url.substring(0, url.lastIndexOf('/') + 1);
+      let baseUrl = url.split('?')[0]; // strip search params for correct pathing
+      if (!baseUrl.endsWith('/')) {
+         baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1);
+      }
 
       // Robust M3U8 rewriting
       const lines = text.split('\n').map(line => {
@@ -61,14 +70,47 @@ export async function GET(request: Request) {
         
         // If it's a metadata line, check for URI attributes (like for encryption keys or subtitles)
         if (trimmed.startsWith('#')) {
-          return trimmed.replace(/URI=["'](.*?)["']/g, (match, p1) => {
-             const absUrl = p1.startsWith('http') ? p1 : new URL(p1, baseUrl).href;
-             return `URI="/api/proxy-stream?url=${encodeURIComponent(absUrl)}"`;
-          });
+          if (trimmed.includes('URI=')) {
+              return line.replace(/URI=["'](.*?)["']/g, (match, p1) => {
+                 let absUrl = p1;
+                 if (!p1.startsWith('http')) {
+                     if (p1.startsWith('/')) {
+                         const rootDomain = new URL(baseUrl).origin;
+                         absUrl = rootDomain + p1;
+                     } else {
+                         try {
+                             absUrl = new URL(p1, baseUrl).href;
+                         } catch(e) {
+                             absUrl = baseUrl + p1;
+                         }
+                     }
+                 }
+                 return `URI="/api/proxy-stream?url=${encodeURIComponent(absUrl)}"`;
+              });
+          }
+          return line;
         }
         
         // It's a URL (segment or sub-playlist)
-        const absUrl = trimmed.startsWith('http') ? trimmed : new URL(trimmed, baseUrl).href;
+        let absUrl = trimmed;
+        if (!trimmed.startsWith('http')) {
+             if (trimmed.startsWith('/')) {
+                 const rootDomain = new URL(baseUrl).origin;
+                 absUrl = rootDomain + trimmed;
+             } else {
+                 try {
+                     absUrl = new URL(trimmed, baseUrl).href;
+                 } catch(e) {
+                     absUrl = baseUrl + trimmed;
+                 }
+             }
+
+             // If original URL had search params (like token) and the segment doesn't, append them
+             const originalUrlObj = new URL(url);
+             if (originalUrlObj.search && !absUrl.includes('?')) {
+                 absUrl += originalUrlObj.search;
+             }
+        }
         return `/api/proxy-stream?url=${encodeURIComponent(absUrl)}`;
       });
 

@@ -22,11 +22,14 @@ export async function GET(request: Request) {
     while (attempts < maxAttempts) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout
+
+        // First attempt: original referer. Second attempt: image origin as referer
+        const activeReferer = attempts === 0 ? referer : `${targetUrl.origin}/`;
 
         response = await fetch(imageUrl, {
           headers: {
-            'Referer': referer,
+            'Referer': activeReferer,
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
             'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8',
@@ -39,9 +42,8 @@ export async function GET(request: Request) {
         if (response.ok) break;
       } catch (e: any) {
         attempts++;
-        console.warn(`Proxy Image Attempt ${attempts} failed:`, e.message);
         if (attempts === maxAttempts) throw e;
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 500));
       }
     }
 
@@ -61,8 +63,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error('Final Proxy Image Error:', error);
-    // Return a 1x1 transparent pixel on error to prevent broken image icons
+    // Return a 1x1 transparent pixel on error to prevent broken image icons silently
     const transparentPixel = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
     return new NextResponse(transparentPixel, {
       headers: {

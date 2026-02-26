@@ -1,4 +1,4 @@
-import { fetchEpisodeDetails } from '@/lib/scraper';
+import { fetchEpisodeIframeOnly } from '@/lib/scraper';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   const slug = searchParams.get('slug');
   if (!slug) return NextResponse.json({ error: 'Missing slug' }, { status: 400 });
 
-  const episode = await fetchEpisodeDetails(slug);
+  const episode = await fetchEpisodeIframeOnly(slug);
   if (!episode) return NextResponse.json({ error: 'Episode not found' }, { status: 404 });
 
   return NextResponse.json({ iframeSource: episode.iframeSource, title: episode.title });

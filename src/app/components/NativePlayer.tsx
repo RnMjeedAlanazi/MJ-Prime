@@ -232,6 +232,10 @@ export default function NativePlayer({
     const handlePause = () => setIsPlaying(false);
     const handleTimeUpdate = () => {
       if (!videoRef.current) return;
+      
+      // Bulletproof sync: always ensure React state matches DOM state
+      setIsPlaying(!videoRef.current.paused);
+
       const time = videoRef.current.currentTime;
       const dur = videoRef.current.duration;
       setCurrentTime(time);
@@ -314,8 +318,19 @@ export default function NativePlayer({
 
     if (Hls.isSupported()) {
       const hls = new Hls({
-        startPosition: currentTime > 0 ? currentTime : 0,
+        startPosition: currentTime > 0 ? currentTime : -1,
         enableWorker: true,
+        lowLatencyMode: true,
+        capLevelToPlayerSize: true, 
+        maxBufferLength: 60, 
+        maxMaxBufferLength: 1200,
+        startLevel: -1, 
+        fragLoadingTimeOut: 30000, 
+        manifestLoadingTimeOut: 20000,
+        fragLoadingMaxRetry: 5,
+        manifestLoadingMaxRetry: 5,
+        levelLoadingTimeOut: 20000,
+        levelLoadingMaxRetry: 5
       });
       hlsRef.current = hls;
       hls.loadSource(proxiedUrl);
@@ -331,21 +346,33 @@ export default function NativePlayer({
         }
       });
 
+      let recoverDecodingErrorDate = 0;
+
       hls.on(Hls.Events.ERROR, (event, data) => {
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              console.error('Fatal network error, trying to recover...');
+              console.warn('Fatal network error encountered, trying to recover...', data);
               hls.startLoad();
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
-              console.error('Fatal media error, trying to recover...');
-              hls.recoverMediaError();
+              console.warn('Fatal media error encountered, trying to recover...', data);
+              const now = Date.now();
+              if (now - recoverDecodingErrorDate > 3000) {
+                 recoverDecodingErrorDate = now;
+                 hls.recoverMediaError();
+              } else {
+                 console.error('Cannot recover media error, too frequent. Continuing...');
+                 hls.swapAudioCodec();
+                 hls.recoverMediaError();
+              }
               break;
             default:
+              console.error('Unrecoverable HLS error:', data);
               hls.destroy();
-              setError('خطأ في تشغيل الفيديو (Source Error)');
+              setError('خطأ في الاتصال بالسيرفر. يرجى المحاولة بعد قليل.');
               break;
+
           }
         }
       });
@@ -397,8 +424,11 @@ export default function NativePlayer({
 
   const togglePlay = () => {
     if (videoRef.current) {
-      if (isPlaying) videoRef.current.pause();
-      else videoRef.current.play();
+      if (videoRef.current.paused) {
+        videoRef.current.play().catch(() => {});
+      } else {
+        videoRef.current.pause();
+      }
     }
   };
 

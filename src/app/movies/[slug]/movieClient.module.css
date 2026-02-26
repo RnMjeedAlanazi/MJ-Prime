@@ -182,15 +182,16 @@
 }
 .favBtn {
   background: rgba(255, 255, 255, 0.08);
-  padding: 14px 34px; /* Matched watchBtn */
-  border-radius: var(--pill-radius); /* Matched watchBtn */
+  padding: 0 34px;
+  height: 54px;
+  border-radius: var(--pill-radius); 
   font-family: var(--font-almarai), sans-serif;
   font-weight: 700;
-  font-size: 15px; /* Matched watchBtn */
+  font-size: 15px; 
   cursor: pointer;
   transition: var(--transition-fast);
   backdrop-filter: blur(10px);
-  display: flex; align-items: center; gap: 10px;
+  display: flex; justify-content: center; align-items: center; gap: 10px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: #fff;
 }
@@ -279,8 +280,13 @@
     margin-bottom: 30px;
   }
   .actions { justify-content: center; width: 100%; gap: 12px; }
-  .watchBtn { padding: 14px 30px; font-size: 15px; width: 100%; justify-content: center; }
-  .favBtn { padding: 12px 24px; font-size: 15px; width: 100%; justify-content: center; }
+  .watchBtn, .favBtn { 
+    padding: 0 20px; 
+    font-size: 15px; 
+    width: 100%; 
+    height: 50px;
+    justify-content: center; 
+  }
   
   .playerSection {
     padding: 0 0 100px; /* Full width on mobile */

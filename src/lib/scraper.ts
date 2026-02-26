@@ -66,11 +66,19 @@ function processLink(href: string, baseUrl: string): { link: string; type: 'movi
     const url = new URL(href, baseUrl);
     const parts = url.pathname.split('/').filter(Boolean);
     const slug = parts[parts.length - 1] || '';
-    if (href.includes('/movies/')) return { link: `/movies/${slug}`, type: 'movie' };
-    if (href.includes('/episodes/')) return { link: `/episodes/${slug}`, type: 'episode' };
-    if (href.includes('/series/') || href.includes('/seasons/') || href.includes('/scategory/'))
+    
+    // Check if it's a page link ?p=
+    if (url.searchParams.has('p')) {
+        return { link: `/?p=${url.searchParams.get('p')}`, type: 'series' };
+    }
+
+    if (url.pathname.includes('/movies/')) return { link: `/movies/${slug}`, type: 'movie' };
+    if (url.pathname.includes('/episodes/')) return { link: `/episodes/${slug}`, type: 'episode' };
+    if (url.pathname.includes('/series/') || url.pathname.includes('/seasons/') || url.pathname.includes('/scategory/'))
       return { link: `/series/${slug}`, type: 'series' };
-    return { link: href, type: 'movie' };
+      
+    // Default fallback
+    return { link: url.pathname + url.search, type: 'movie' };
   } catch {
     return { link: href, type: 'movie' };
   }
@@ -410,6 +418,36 @@ export async function fetchMovieDetails(slug: string): Promise<MovieDetails | nu
   }
 }
 
+export async function fetchEpisodeIframeOnly(slug: string): Promise<{ iframeSource: string; title: string } | null> {
+  const baseUrl = await getBaseUrl();
+  const decodedSlug = decodeURIComponent(slug);
+  const url = encodeURI(`${baseUrl}/episodes/${decodedSlug}`);
+  try {
+    const { data } = await retryGet(url);
+    const $ = cheerio.load(data);
+    
+    // Quick extract just title and iframe, skip the rest
+    const titleEl = $('.h1.title, h1.title, .h1, h1').first().clone();
+    titleEl.find('span, blockquote, i, a').remove(); 
+    const rawTitle = titleEl.text().trim().replace(/\n\s+/g, ' ');
+    const title = cleanMediaTitle(rawTitle);
+
+    let iframeSource = '';
+    const activeOnclick = $('li.active[onclick]').attr('onclick') || $('li[onclick]').first().attr('onclick') || '';
+    const onclickMatch = activeOnclick.match(/player_iframe\.location\.href\s*=\s*['"]([^'"]+)['"]/);
+    if (onclickMatch) {
+      iframeSource = onclickMatch[1].replace('.xyz', '.best');
+    } else {
+      iframeSource = ($('iframe[src*="video_player"]').attr('src') || '').replace('.xyz', '.best');
+    }
+
+    return { title, iframeSource };
+  } catch (error) {
+    console.error(`Failed to fetch episode iframe only:`, error);
+    return null;
+  }
+}
+
 export async function fetchEpisodeDetails(slug: string): Promise<MovieDetails | null> {
   const baseUrl = await getBaseUrl();
   const decodedSlug = decodeURIComponent(slug);
@@ -486,7 +524,10 @@ export async function fetchEpisodeDetails(slug: string): Promise<MovieDetails | 
       if (match) {
         link = match[1];
         if (link.startsWith('/?p=')) link = `/series/p-${link.split('=')[1]}`;
-        else link = processLink(link, baseUrl).link;
+        else {
+            const processed = processLink(link, baseUrl).link;
+            link = processed.startsWith('/?p=') ? `/series/p-${processed.split('=')[1]}` : processed;
+        }
       } else if (isActive) {
         link = '#';
       }
@@ -602,7 +643,10 @@ export async function fetchSeasonDetails(slug: string): Promise<SeasonDetails | 
     if (match) {
        link = match[1];
        if (link.startsWith('/?p=')) link = `/series/p-${link.split('=')[1]}`;
-       else link = processLink(link, baseUrl).link;
+       else {
+           const processed = processLink(link, baseUrl).link;
+           link = processed.startsWith('/?p=') ? `/series/p-${processed.split('=')[1]}` : processed;
+       }
     } else if (isActive) {
        link = '#';
     }

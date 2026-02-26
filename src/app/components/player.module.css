@@ -6,12 +6,13 @@
   display: flex;
   flex-direction: column;
   aspect-ratio: 16 / 9;
-  width: 100%;
   height: auto;
+  max-height: 85vh;
 }
 
 .playerWrapper:fullscreen {
     aspect-ratio: auto;
+    max-height: none;
     width: 100vw;
     height: 100vh;
     border-radius: 0;
@@ -19,21 +20,9 @@
 
 .playerWrapper:-webkit-full-screen {
     aspect-ratio: auto;
+    max-height: none;
     width: 100vw;
     height: 100vh;
-}
-
-@media (max-width: 768px) {
-  .playerWrapper {
-    aspect-ratio: auto;
-    height: 240px; /* Force minimum playable height on mobile */
-  }
-}
-
-@media (max-width: 480px) {
-  .playerWrapper {
-    height: 210px;
-  }
 }
 
 .videoContainer {
@@ -90,14 +79,14 @@
   top: 0;
   left: 0;
   right: 0;
-  padding: 20px;
+  padding: 16px 20px;
   display: flex;
   justify-content: space-between;
-  background: linear-gradient(rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
+  background: linear-gradient(rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
 }
 
 .bottomControls {
-  padding: 0 20px 20px 20px;
+  padding: 0 20px 16px 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -519,22 +508,37 @@
     font-size: 12px;
   }
   
+  .topControls {
+    padding: 8px 12px;
+  }
+
   .bottomControls {
-    padding: 0 10px 10px 10px;
+    padding: 0 12px 10px 12px;
+    gap: 8px;
   }
 
   .centerControlsGroup {
-    gap: 30px;
+    gap: 20px;
   }
   
   .centerPlayBtn {
-    width: 70px;
-    height: 70px;
+    width: 50px;
+    height: 50px;
+  }
+
+  .centerPlayBtn svg {
+    width: 28px;
+    height: 28px;
   }
 
   .centerControlBtn svg {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
+  }
+  
+  .controlBtn svg {
+    width: 20px;
+    height: 20px;
   }
 }
 

@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import styles from './series.module.css';
 import NativePlayer from '@/app/components/NativePlayer';
 import Link from 'next/link';
@@ -25,6 +26,29 @@ export default function SeriesClient({ season, candidates }: { season: SeasonDat
   const [iframeSource, setIframeSource] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [favorite, setFavorite] = useState(false);
+  const [hasRedirected, setHasRedirected] = useState(false);
+
+  // Auto-play the last watched episode silently without redirecting, keeping metadata safe
+  useEffect(() => {
+    if (!season.seriesId || hasRedirected) return;
+
+    const lastWatchedStr = localStorage.getItem(`last_watched_series_${season.seriesId}`);
+    if (lastWatchedStr) {
+      try {
+        const lastWatched = JSON.parse(lastWatchedStr);
+        if (lastWatched.epLink && !activeEp) {
+          // Check if it belongs to the currently displayed season
+          let ep = season.episodes.find(e => e.epLink === lastWatched.epLink);
+          // If it's from another season, we can still play it directly without ruining the page!
+          if (!ep) {
+            ep = { epTitle: 'متابعة المشاهدة', epLink: lastWatched.epLink };
+          }
+          playEpisode(ep);
+        }
+      } catch (e) {}
+    }
+    setHasRedirected(true);
+  }, [season.seriesId, hasRedirected, activeEp, season.episodes]);
 
   useEffect(() => {
     saveUserView(season.title, 'series', season.genres, activeProfile?.id);
@@ -50,6 +74,15 @@ export default function SeriesClient({ season, candidates }: { season: SeasonDat
     setActiveEp(ep);
     setLoading(true);
     setIframeSource('');
+    
+    // Save the last watched marker
+    if (season.seriesId) {
+      const activeSeason = season.seasons?.find(s => s.isActive);
+      localStorage.setItem(`last_watched_series_${season.seriesId}`, JSON.stringify({
+        seasonLink: activeSeason ? activeSeason.link : window.location.pathname,
+        epLink: ep.epLink
+      }));
+    }
     try {
       const slug = ep.epLink.replace('/episodes/', '');
       const res = await fetch(`/api/episode-iframe?slug=${encodeURIComponent(slug)}`);

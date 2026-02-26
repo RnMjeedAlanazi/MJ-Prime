@@ -48,6 +48,14 @@ export default function EpisodeClient({ episode, currentSlug, candidates }: { ep
     setActiveEpLink(slug);
     setLoadingSlug(slug);
     setIframeSource('');
+
+    if (episode.seriesId) {
+      const activeSeason = episode.seasons?.find(s => s.isActive);
+      localStorage.setItem(`last_watched_series_${episode.seriesId}`, JSON.stringify({
+        seasonLink: activeSeason ? activeSeason.link : window.location.pathname,
+        epLink: epLink
+      }));
+    }
     try {
       const res = await fetch(`/api/episode-iframe?slug=${encodeURIComponent(slug)}`);
       const data = await res.json();
