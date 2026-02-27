@@ -341,6 +341,12 @@ export async function fetchCategoryPage(category: string, page: number = 1): Pro
   const baseUrl = await getBaseUrl();
   const url = page === 1 ? `${baseUrl}/${path}` : `${baseUrl}/${path}/page/${page}`;
 
+  // Short term cache for categories (10 mins)
+  const cacheKey = `category_${category}_p${page}`;
+  const { GlobalCache } = await import('./server-cache');
+  const cached = await GlobalCache.get(cacheKey, 600);
+  if (cached) return cached;
+
   try {
     const { data } = await retryGet(url);
     const $ = cheerio.load(data);
@@ -350,6 +356,10 @@ export async function fetchCategoryPage(category: string, page: number = 1): Pro
       const item = extractPostDiv($, el);
       if (item) items.push(item);
     });
+    
+    if (items.length > 0) {
+      await GlobalCache.set(cacheKey, items);
+    }
     return items;
   } catch (error) {
     console.error(`Failed to fetch ${category} page ${page}:`, error);
@@ -788,6 +798,27 @@ export async function fetchFilteredMovies(filters: {
     return items;
   } catch (error) {
     console.error('Ajax movie filter failed:', error);
+    return [];
+  }
+}
+
+export async function searchMedia(query: string, page: number = 1): Promise<MediaItem[]> {
+  const baseUrl = await getBaseUrl();
+  const url = page === 1 
+    ? `${baseUrl}/?s=${encodeURIComponent(query)}` 
+    : `${baseUrl}/page/${page}/?s=${encodeURIComponent(query)}`;
+
+  try {
+    const { data } = await retryGet(url);
+    const $ = cheerio.load(data);
+    const items: MediaItem[] = [];
+    $('.postDiv').each((_, el) => {
+      const item = extractPostDiv($, el);
+      if (item) items.push(item);
+    });
+    return items;
+  } catch (error) {
+    console.error(`Failed to search for "${query}":`, error);
     return [];
   }
 }

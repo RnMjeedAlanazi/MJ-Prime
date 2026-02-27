@@ -8,11 +8,13 @@ import { auth } from '@/lib/firebase';
 import { User, Settings as SettingsIcon, LogOut, Plus, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, usePathname } from 'next/navigation';
+import SearchOverlay from './SearchOverlay';
 
 export default function NavBar() {
   const [scrolled, setScrolled] = useState(false);
   const { user, activeProfile, setActiveProfile } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -25,9 +27,9 @@ export default function NavBar() {
   const isAuthPage = ['/login', '/register', '/profiles/selector'].includes(pathname);
   if (isAuthPage) return null;
 
-
-
   return (
+    <>
+    <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     <nav
       className={styles.navbar}
       style={scrolled ? {
@@ -69,7 +71,11 @@ export default function NavBar() {
           <Link href="/favorites" className={styles.navLink}>المفضلة</Link>
         </div>
         <div className={styles.navRight}>
-          <button className={styles.searchBtn} aria-label="Search">
+          <button 
+            className={styles.searchBtn} 
+            aria-label="Search"
+            onClick={() => setIsSearchOpen(true)}
+          >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
@@ -143,5 +149,6 @@ export default function NavBar() {
         </div>
       </div>
     </nav>
+    </>
   );
 }

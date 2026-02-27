@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import puppeteer from 'puppeteer';
 import { getBaseUrl } from '@/lib/config';
+import { GlobalCache } from '@/lib/server-cache';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 45;
@@ -60,6 +61,14 @@ export async function GET(request: Request) {
   const cached = cache.get(token);
   if (cached && cached.expiry > Date.now()) return NextResponse.json({ streams: cached.streams });
 
+  // Check Persistent Cache (Firebase)
+  const persistent = await GlobalCache.get(`streams/${token}`, 172800); // 48 hours for streams
+  if (persistent) {
+    // Also update memory cache
+    cache.set(token, { streams: persistent, expiry: Date.now() + 3600000 });
+    return NextResponse.json({ streams: persistent });
+  }
+
   let baseDomain = domainParam || await getBaseUrl();
   if (baseDomain.includes('faselhd')) {
       baseDomain = baseDomain.replace(/\.([a-z0-9]+)$/, '.best');
@@ -114,7 +123,8 @@ export async function GET(request: Request) {
         streams = Array.from(map.values()).sort((a, b) => parseInt(b.quality) - parseInt(a.quality));
 
         console.log("Ultra-fast path successful!");
-        cache.set(token, { streams, expiry: Date.now() + 3600000 }); // 1 hour cache
+        cache.set(token, { streams, expiry: Date.now() + 3600000 }); // 1 hour memory
+        GlobalCache.set(`streams/${token}`, streams); // 48h persistent
         return NextResponse.json({ streams });
       }
     }
@@ -185,6 +195,7 @@ export async function GET(request: Request) {
     if (caughtStream) {
       const streams = [{ quality: caughtQuality, url: caughtStream }];
       cache.set(token, { streams, expiry: Date.now() + 3600000 });
+      GlobalCache.set(`streams/${token}`, streams);
       return NextResponse.json({ streams });
     }
   } catch (err) {

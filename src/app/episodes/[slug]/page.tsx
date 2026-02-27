@@ -2,6 +2,7 @@ import { fetchEpisodeDetails, fetchCategoryPage } from '@/lib/scraper';
 import EpisodeClient from './EpisodeClient';
 import Link from 'next/link';
 import { AlertTriangle, ArrowRight } from 'lucide-react';
+import { GlobalCache } from '@/lib/server-cache';
 
 interface EpisodePageProps {
   params: Promise<{ slug: string }>;
@@ -9,12 +10,21 @@ interface EpisodePageProps {
 
 export default async function EpisodeDetailsPage({ params }: EpisodePageProps) {
   const { slug } = await params;
-  const [episode, recent, topViews, topImdb] = await Promise.all([
-    fetchEpisodeDetails(slug),
+
+  // Try Persistent Cache
+  let episode = await GlobalCache.get(`episode_details/${slug}`, 86400); // 24h
+
+  const [freshEpisode, recent, topViews, topImdb] = await Promise.all([
+    !episode ? fetchEpisodeDetails(slug) : Promise.resolve(null),
     fetchCategoryPage('series', 1),
     fetchCategoryPage('series-top-views', 1),
     fetchCategoryPage('series-top-imdb', 1)
   ]);
+
+  if (!episode && freshEpisode) {
+    episode = freshEpisode;
+    GlobalCache.set(`episode_details/${slug}`, episode);
+  }
 
   if (!episode) {
     return (

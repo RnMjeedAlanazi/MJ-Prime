@@ -2,6 +2,7 @@ import { fetchSeasonDetails, fetchCategoryPage } from '@/lib/scraper';
 import SeriesClient from './SeriesClient';
 import Link from 'next/link';
 import { AlertTriangle, ArrowRight } from 'lucide-react';
+import { GlobalCache } from '@/lib/server-cache';
 
 interface SeriesPageProps {
   params: Promise<{ slug: string }>;
@@ -9,12 +10,21 @@ interface SeriesPageProps {
 
 export default async function SeriesDetailsPage({ params }: SeriesPageProps) {
   const { slug } = await params;
-  const [season, recent, topViews, topImdb] = await Promise.all([
-    fetchSeasonDetails(slug),
+
+  // Try Persistent Cache
+  let season = await GlobalCache.get(`season_details/${slug}`, 86400); // 24h
+
+  const [freshSeason, recent, topViews, topImdb] = await Promise.all([
+    !season ? fetchSeasonDetails(slug) : Promise.resolve(null),
     fetchCategoryPage('series', 1),
     fetchCategoryPage('series-top-views', 1),
     fetchCategoryPage('series-top-imdb', 1)
   ]);
+
+  if (!season && freshSeason) {
+    season = freshSeason;
+    GlobalCache.set(`season_details/${slug}`, season);
+  }
 
   if (!season) {
     return (
