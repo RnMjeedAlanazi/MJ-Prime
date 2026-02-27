@@ -446,6 +446,10 @@ export async function fetchEpisodeIframeOnly(slug: string): Promise<{ iframeSour
       iframeSource = ($('iframe[src*="video_player"]').attr('src') || '').replace('.xyz', '.best');
     }
 
+    if (iframeSource && !iframeSource.startsWith('http')) {
+      iframeSource = baseUrl.replace(/\/$/, '') + (iframeSource.startsWith('/') ? iframeSource : '/' + iframeSource);
+    }
+
     return { title, iframeSource };
   } catch (error) {
     console.error(`Failed to fetch episode iframe only:`, error);
