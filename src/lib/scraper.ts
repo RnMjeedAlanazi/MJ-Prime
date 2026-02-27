@@ -2,7 +2,7 @@ import * as cheerio from 'cheerio';
 import { getBaseUrl } from './config';
 
 async function getHeaders() {
-  const baseUrl = await getBaseUrl();
+  const baseUrl = getBaseUrl();
   return {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Referer': baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`,
@@ -17,7 +17,7 @@ async function retryGet(url: string, maxRetries = 3): Promise<{ data: string }> 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 6000); // Faster initial timeout
       
-      const baseUrl = await getBaseUrl();
+      const baseUrl = getBaseUrl();
       const res = await fetch(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
@@ -242,7 +242,7 @@ export async function fetchFullHomePage(): Promise<HomePageData> {
   };
 
   try {
-    const baseUrl = await getBaseUrl();
+    const baseUrl = getBaseUrl();
     (global as any).currentBaseUrl = baseUrl;
     const { data } = await retryGet(`${baseUrl}/main`);
     const $ = cheerio.load(data);
@@ -338,7 +338,7 @@ export async function fetchCategoryPage(category: string, page: number = 1): Pro
     tvshows: 'tvshows',
   };
   const path = pathMap[category] || category;
-  const baseUrl = await getBaseUrl();
+  const baseUrl = getBaseUrl();
   const url = page === 1 ? `${baseUrl}/${path}` : `${baseUrl}/${path}/page/${page}`;
 
   try {
@@ -359,7 +359,7 @@ export async function fetchCategoryPage(category: string, page: number = 1): Pro
 }
 
 export async function fetchMovieDetails(slug: string): Promise<MovieDetails | null> {
-  const baseUrl = await getBaseUrl();
+  const baseUrl = getBaseUrl();
   const decodedSlug = decodeURIComponent(slug);
   const url = encodeURI(`${baseUrl}/movies/${decodedSlug}`);
   try {
@@ -415,7 +415,7 @@ export async function fetchMovieDetails(slug: string): Promise<MovieDetails | nu
 }
 
 export async function fetchEpisodeIframeOnly(slug: string): Promise<{ iframeSource: string; title: string } | null> {
-  const baseUrl = await getBaseUrl();
+  const baseUrl = getBaseUrl();
   const decodedSlug = decodeURIComponent(slug);
   const url = encodeURI(`${baseUrl}/episodes/${decodedSlug}`);
   try {
@@ -449,7 +449,7 @@ export async function fetchEpisodeIframeOnly(slug: string): Promise<{ iframeSour
 }
 
 export async function fetchEpisodeDetails(slug: string): Promise<MovieDetails | null> {
-  const baseUrl = await getBaseUrl();
+  const baseUrl = getBaseUrl();
   const decodedSlug = decodeURIComponent(slug);
   const url = encodeURI(`${baseUrl}/episodes/${decodedSlug}`);
   try {
@@ -555,7 +555,7 @@ export async function fetchEpisodeDetails(slug: string): Promise<MovieDetails | 
 }
 
 export async function fetchSeasonDetails(slug: string): Promise<SeasonDetails | null> {
-  const baseUrl = await getBaseUrl();
+  const baseUrl = getBaseUrl();
   const decodedSlug = decodeURIComponent(slug);
   let paths = [`${baseUrl}/seasons/${decodedSlug}`, `${baseUrl}/series/${decodedSlug}`, `${baseUrl}/scategory/${decodedSlug}`];
   if (decodedSlug.startsWith('p-')) {
@@ -674,7 +674,7 @@ export async function fetchFilteredSeries(filters: {
   type?: string; 
   page?: number 
 }): Promise<MediaItem[]> {
-  const baseUrl = await getBaseUrl();
+  const baseUrl = getBaseUrl();
   const url = `${baseUrl}/wp-admin/admin-ajax.php`;
   
   const body = `categoryfilter=${filters.category || ''}&yearfilter=&qualityfilter=${filters.quality || ''}&statusfilter=${filters.status || ''}&typesfilter=${filters.type || ''}&countryfilter=&action=fillter_all_series${filters.page && filters.page > 1 ? `&pagenum=${filters.page}` : ''}`;
@@ -742,7 +742,7 @@ export async function fetchFilteredMovies(filters: {
   country?: string; 
   page?: number 
 }): Promise<MediaItem[]> {
-  const baseUrl = await getBaseUrl();
+  const baseUrl = getBaseUrl();
   const url = `${baseUrl}/wp-admin/admin-ajax.php`;
   
   const body = `typefilter=none&categoryfilter=${filters.category || ''}&yearsfilter=${filters.year || ''}&qualityfilter=${filters.quality || ''}&typesfilter=${filters.type || ''}&countryfilter=${filters.country || ''}&action=fillter_all_movies${filters.page && filters.page > 1 ? `&pagenum=${filters.page}` : ''}`;
@@ -801,7 +801,7 @@ export async function fetchFilteredMovies(filters: {
 }
 
 export async function searchMedia(query: string, page: number = 1): Promise<MediaItem[]> {
-  const baseUrl = await getBaseUrl();
+  const baseUrl = getBaseUrl();
   const url = page === 1 
     ? `${baseUrl}/?s=${encodeURIComponent(query)}` 
     : `${baseUrl}/page/${page}/?s=${encodeURIComponent(query)}`;
