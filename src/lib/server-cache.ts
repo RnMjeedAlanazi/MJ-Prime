@@ -10,8 +10,14 @@ export const GlobalCache = {
   async get(path: string, ttlSeconds: number = 86400): Promise<any | null> {
     try {
       const dbRef = ref(db, `global_cache/${path}`);
-      const snapshot = await get(dbRef);
-      if (snapshot.exists()) {
+      const snapshot = await get(dbRef).catch(err => {
+        if (err.message?.includes('PERMISSION_DENIED')) {
+           return null;
+        }
+        throw err;
+      });
+
+      if (snapshot && snapshot.exists()) {
         const data = snapshot.val();
         const now = Date.now();
         if (now - data.timestamp < ttlSeconds * 1000) {
@@ -19,7 +25,7 @@ export const GlobalCache = {
         }
       }
     } catch (e) {
-      console.warn(`[GlobalCache] Read error at ${path}:`, e);
+      console.warn(`[GlobalCache] Read avoided/error at ${path}`);
     }
     return null;
   },
@@ -35,9 +41,11 @@ export const GlobalCache = {
       await set(dbRef, {
         value,
         timestamp: Date.now()
+      }).catch(() => {
+         // Silently fail on write permissions
       });
     } catch (e) {
-      console.error(`[GlobalCache] Write error at ${path}:`, e);
+      // Avoid crash on write
     }
   }
 };
