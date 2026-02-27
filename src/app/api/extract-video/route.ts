@@ -34,10 +34,18 @@ async function getBrowser() {
         "--disable-setuid-sandbox", 
         "--disable-dev-shm-usage",
         "--disable-web-security",
-        "--disable-features=IsolateOrigins,site-per-process",
+        "--disable-features=IsolateOrigins,site-per-process,Translate,OptimizationHints,BackForwardCache",
         "--disable-extensions",
         "--disable-gpu",
         "--disable-infobars",
+        "--disable-notifications",
+        "--disable-background-networking",
+        "--disable-default-apps",
+        "--disable-sync",
+        "--metrics-recording-only",
+        "--no-first-run",
+        "--no-zygote",
+        "--mute-audio",
         "--window-position=-2100,-2100",
         "--window-size=1,1"
       ],
@@ -66,87 +74,105 @@ export async function GET(request: Request) {
   const cached = cache.get(storageKey);
   if (cached && cached.expiry > Date.now()) return NextResponse.json({ streams: cached.streams });
 
-  // Check Persistent Cache (Firebase)
-  const persistent = await GlobalCache.get(`streams/${storageKey}`, 172800); // 48 hours for streams
-  if (persistent) {
-    // Also update memory cache
-    cache.set(storageKey, { streams: persistent, expiry: Date.now() + 3600000 });
-    return NextResponse.json({ streams: persistent });
-  }
-
-  let baseDomain = domainParam || await getBaseUrl();
+  // 1. Initial Domain Setup
+  let baseDomain = domainParam || getBaseUrl();
   if (baseDomain.includes('faselhd')) {
       baseDomain = baseDomain.replace(/\.([a-z0-9]+)$/, '.best');
   }
   const playUrl = `${baseDomain.replace(/\/$/, '')}/video_player?player_token=${token}`;
 
-  // === ULTRA-FAST PATH: Fetch & Multi-Regex ===
-  try {
-    const fetchWithRetry = async (url: string, retries = 2) => {
-      for (let i = 0; i < retries; i++) {
-        try {
-          return await fetch(url, {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-              'Referer': baseDomain,
-              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-              'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8',
-            },
-            next: { revalidate: 0 }
+  // 2. COMPETITIVE PARALLEL RACE
+  // We run Firebase Check and Fast Extraction in parallel. Whichever finishes first with data wins.
+  const abortController = new AbortController();
+  
+  const firebaseTask = GlobalCache.get(`streams/${storageKey}`, 172800);
+  const extractionTask = (async () => {
+    try {
+      const fetchWithRetry = async (url: string, retries = 2) => {
+        for (let i = 0; i < retries; i++) {
+          try {
+            const res = await fetch(url, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                'Referer': baseDomain,
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8',
+              },
+              signal: abortController.signal,
+              next: { revalidate: 0 }
+            });
+            if (res.ok) return res;
+            throw new Error(`Status ${res.status}`);
+          } catch (err: any) {
+            if (i === retries - 1 || abortController.signal.aborted) throw err;
+            await new Promise(r => setTimeout(r, 200)); // Faster retry
+          }
+        }
+      };
+
+      const res = await fetchWithRetry(playUrl);
+      if (res && res.ok) {
+        const html = await res.text();
+        const patterns = [
+          /data-url=["']([^"']+\.m3u8[^"']*)["']/gi,
+          /(?:file|url|src)["']?\s*:\s*["']([^"']+\.m3u8[^"']*)["']/gi,
+          /["'](https?:\/\/[^"']+\.m3u8[^"']*)["']/gi,
+          /source\s+src=["']([^"']+\.m3u8[^"']*)["']/gi
+        ];
+
+        const allUrls = new Set<string>();
+        for (const pattern of patterns) {
+          const matches = [...html.matchAll(pattern)];
+          matches.forEach(m => allUrls.add(m[1]));
+        }
+
+        if (allUrls.size > 0) {
+          let streams = Array.from(allUrls).map(url => {
+            let q = 'Auto';
+            if (url.includes('1080')) q = '1080p';
+            else if (url.includes('720')) q = '720p';
+            else if (url.includes('480')) q = '480p';
+            else if (url.includes('360')) q = '360p';
+            return { quality: q, url };
           });
-        } catch (err: any) {
-          if (i === retries - 1) throw err;
-          await new Promise(r => setTimeout(r, 1000));
+          const map = new Map<string, any>();
+          streams.forEach(s => {
+            if (!map.has(s.quality) || (s.url.length < map.get(s.quality).url.length)) map.set(s.quality, s);
+          });
+          return Array.from(map.values()).sort((a, b) => parseInt(b.quality) - parseInt(a.quality));
         }
       }
-    };
-
-    const res = await fetchWithRetry(playUrl);
-    if (res && res.ok) {
-      const html = await res.text();
-      
-      // Improved multi-source detection
-      const patterns = [
-        /data-url=["']([^"']+\.m3u8[^"']*)["']/gi,
-        /(?:file|url|src)["']?\s*:\s*["']([^"']+\.m3u8[^"']*)["']/gi,
-        /["'](https?:\/\/[^"']+\.m3u8[^"']*)["']/gi,
-        /source\s+src=["']([^"']+\.m3u8[^"']*)["']/gi
-      ];
-
-      const allUrls = new Set<string>();
-      for (const pattern of patterns) {
-        const matches = [...html.matchAll(pattern)];
-        matches.forEach(m => allUrls.add(m[1]));
-      }
-
-      if (allUrls.size > 0) {
-        let streams = Array.from(allUrls).map(url => {
-          let q = 'Auto';
-          if (url.includes('1080')) q = '1080p';
-          else if (url.includes('720')) q = '720p';
-          else if (url.includes('480')) q = '480p';
-          else if (url.includes('360')) q = '360p';
-          return { quality: q, url };
-        });
-
-        // Deduplicate and prioritize
-        const map = new Map<string, any>();
-        streams.forEach(s => {
-          if (!map.has(s.quality) || (s.url.length < map.get(s.quality).url.length)) {
-             map.set(s.quality, s);
-          }
-        });
-        
-        streams = Array.from(map.values()).sort((a, b) => parseInt(b.quality) - parseInt(a.quality));
-
-        console.log("Ultra-fast path successful!");
-        cache.set(storageKey, { streams, expiry: Date.now() + 3600000 }); // 1 hour memory
-        GlobalCache.set(`streams/${storageKey}`, streams); // 48h persistent
-        return NextResponse.json({ streams });
-      }
+    } catch (e) {
+      if (!abortController.signal.aborted) console.error("Fast extraction failed:", e);
     }
-  } catch (e) {
-    console.error("Fast path failed:", e);
+    return null;
+  })();
+
+  // Race between Firebase and Extraction
+  // We wait for the first valid result
+  const firstResult = await Promise.race([
+    firebaseTask.then(data => data ? { source: 'firebase', streams: data } : null),
+    extractionTask.then(streams => streams ? { source: 'extract', streams } : null)
+  ]);
+
+  // If one of them returned data immediately, return it
+  if (firstResult && firstResult.streams) {
+    if (firstResult.source === 'firebase') abortController.abort(); // Cancel fetch if we got from DB
+    
+    const streams = firstResult.streams;
+    cache.set(storageKey, { streams, expiry: Date.now() + 3600000 });
+    if (firstResult.source === 'extract') GlobalCache.set(`streams/${storageKey}`, streams);
+    return NextResponse.json({ streams });
+  }
+
+  // Fallback: wait for the second one if the first one was null
+  const [persistent, fastStreams] = await Promise.all([firebaseTask, extractionTask]);
+  const finalStreams = persistent || fastStreams;
+
+  if (finalStreams) {
+    cache.set(storageKey, { streams: finalStreams, expiry: Date.now() + 3600000 });
+    if (fastStreams && !persistent) GlobalCache.set(`streams/${storageKey}`, fastStreams);
+    return NextResponse.json({ streams: finalStreams });
   }
 
   // === SLOW PATH: Optimization Puppeteer (Turbo Mode) ===
@@ -168,7 +194,11 @@ export async function GET(request: Request) {
     
     // Minimal footprint
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
+    // 4. Aggressive Resource Blocking & Optimization
     await page.setRequestInterception(true);
+    // Disable features that slow down page execution
+    await page.setJavaScriptEnabled(true);
+    await (page as any).setCacheEnabled(true); // Allow caching for faster subsequent navigations if browser stays open
 
     page.on('request', (req: any) => {
       const type = req.resourceType();
@@ -181,19 +211,29 @@ export async function GET(request: Request) {
         else if (url.includes('720')) caughtQuality = '720p';
         else if (url.includes('480')) caughtQuality = '480p';
         req.continue();
+        return;
       } 
-      // Aggressive Blocking
-      else if (['image', 'font', 'stylesheet', 'media', 'other'].includes(type) || 
-               url.includes('google') || url.includes('analytics') || url.includes('ads') || 
-               url.includes('facebook') || url.includes('twitter')) {
+      
+      // BLOCK EVERYTHING ELSE
+      // We only need the main document and essential scripts that trigger the player
+      const blockTypes = ['image', 'font', 'stylesheet', 'media', 'object', 'texttrack', 'eventsource', 'websocket', 'manifest'];
+      const blockDomains = ['google', 'analytics', 'ads', 'facebook', 'twitter', 'adnxs', 'doubleclick', 'amazon-adsystem', 'popads', 'onclickads'];
+
+      if (blockTypes.includes(type) || blockDomains.some(d => url.includes(d))) {
         req.abort();
       } else {
         req.continue();
       }
     });
 
-    // We don't wait for load, we wait for 'request'
-    page.goto(playUrl).catch(() => {});
+    // Disable extra features to save CPU/Memory
+    const client = await (page as any).target().createCDPSession();
+    await client.send('Page.setAdBlockingEnabled', { enabled: true });
+    await client.send('Network.setBypassServiceWorker', { bypass: true });
+
+    // NAVIGATION: Fast-load strategy
+    // We don't wait for 'load' or 'networkidle', just trigger and poll
+    page.goto(playUrl, { waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {});
     
     // Polling with shorter interval
     for (let i = 0; i < 120; i++) { // 6 seconds max
