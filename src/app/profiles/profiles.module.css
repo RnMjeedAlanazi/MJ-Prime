@@ -557,3 +557,47 @@
   line-height: 1.2;
 }
 
+
+.tabInfoGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tabTitle {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.posterPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+}
+
+.pendingBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #ffa000;
+  color: #000;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse-orange 2s infinite;
+  box-shadow: 0 0 10px rgba(255, 160, 0, 0.4);
+}
+
+@keyframes pulse-orange {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}

@@ -15,7 +15,7 @@ interface MovieDetails {
   genres: { name: string; link: string }[]; year: string; rating: string; duration: string; quality: string;
 }
 
-export default function MovieClient({ movie, candidates }: { movie: MovieDetails, candidates: any[] }) {
+export default function MovieClient({ movie, candidates, slug }: { movie: MovieDetails, candidates: any[], slug: string }) {
   const { activeProfile } = useAuth();
   const [showPlayer, setShowPlayer] = useState(false);
   const [favorite, setFavorite] = useState(false);
@@ -152,7 +152,7 @@ export default function MovieClient({ movie, candidates }: { movie: MovieDetails
             <div className={styles.playerBox}>
               <NativePlayer 
                 iframeSource={movie.iframeSource} 
-                mediaId={movie.title}
+                mediaId={`${movie.title}_${slug}`}
                 title={movie.title}
                 poster={movie.poster}
                 type="movie"

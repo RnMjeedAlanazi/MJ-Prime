@@ -33,5 +33,5 @@ export default async function MovieDetailsPage({ params }: MoviePageProps) {
 
   const candidates = [...recent, ...topViews, ...topImdb];
 
-  return <MovieClient movie={movie} candidates={candidates} />;
+  return <MovieClient movie={movie} candidates={candidates} slug={slug} />;
 }

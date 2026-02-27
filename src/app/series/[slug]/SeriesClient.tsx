@@ -272,13 +272,13 @@ export default function SeriesClient({ season, candidates }: { season: SeasonDat
           <div className={styles.playerBox}>
             {loading && <div className={styles.loadingPulse}>جاري المعالجة...</div>}
             {!loading && iframeSource && activeEp && (
-              <NativePlayer 
-                iframeSource={iframeSource} 
-                nextEpisode={getNextEpisodeInfo()}
-                mediaId={`${season.title}_${activeEp.epLink}`}
-                title={`${season.title} - ${activeEp.epTitle}`}
-                type="episode"
-              />
+                <NativePlayer 
+                  iframeSource={iframeSource} 
+                  nextEpisode={getNextEpisodeInfo()}
+                  mediaId={`${season.title}_${activeEp.epLink.replace('/episodes/', '')}`}
+                  title={`${season.title} - ${activeEp.epTitle}`}
+                  type="episode"
+                />
             )}
           </div>
         </motion.div>

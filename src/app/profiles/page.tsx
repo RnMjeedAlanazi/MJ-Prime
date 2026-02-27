@@ -10,7 +10,7 @@ import { getFavorites, toggleFavorite } from '@/lib/userProfile';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db, ref, set, update } from '@/lib/firebase';
-import { Shield, Check, Pencil } from 'lucide-react';
+import { Shield, Check, Pencil, Film } from 'lucide-react';
 
 const AVATARS = [
   '/api/proxy-image?url=' + encodeURIComponent('https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png'),
@@ -160,58 +160,88 @@ export default function ProfilePage() {
       )}
 
       <div className={styles.content}>
+        <AnimatePresence mode="wait">
         {activeTab === 'history' && (
-          <>
+          <motion.div 
+            key="history"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+          >
             <div className={styles.tabHeader}>
-              {history.some(item => item._isPending && !item._inCloud) && (
-                <div className={styles.syncWarning}>
-                  <AlertCircle size={16} />
-                  <span>هذه البيانات لم تُحفظ في السحاب بعد، شاهد 3 حلقات أو فيلمين إضافيين للمزامنة التلقائية.</span>
-                </div>
-              )}
+              <div className={styles.tabInfoGroup}>
+                <h2 className={styles.tabTitle}>سجل المشاهدة</h2>
+                {history.some(item => item._isPending && !item._inCloud) && (
+                  <div className={styles.syncWarning}>
+                    <AlertCircle size={14} />
+                    <span>مزامنة معلقة: شاهد المزيد للحفظ سحابياً</span>
+                  </div>
+                )}
+              </div>
               {history.length > 0 && (
                 <button onClick={handleDeleteHistory} className={styles.clearHistoryInline}>
-                   <Trash2 size={14} /> مسح سجل المشاهدة
+                   <Trash2 size={14} /> مسح الكل
                 </button>
               )}
             </div>
+            
             <div className={styles.grid}>
             {history.length === 0 ? <p className={styles.empty}>لا يوجد سجل متابعة حالياً</p> : 
-              history.filter(item => item && item.mediaId).map((item, idx) => (
-                <Link href={`/${item.type === 'movie' ? 'movies' : 'episodes'}/${item.mediaId.split('_').pop()}`} key={idx}>
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className={styles.historyCard}
-                  >
-                    <div className={styles.historyPoster}>
-                       {item.poster && <img src={`/api/proxy-image?url=${encodeURIComponent(item.poster)}`} alt={item.title} />}
-                       <div className={styles.historyPlayOverlay}>
-                          <Play size={20} fill="currentColor" />
-                       </div>
-                    </div>
-                    <div className={styles.cardInfo}>
-                      <h3>{item.title}</h3>
-                      <div className={styles.progressText}>
-                         توقفت عند {Math.floor(item.currentTime / 60)}:{(Math.floor(item.currentTime % 60)).toString().padStart(2, '0')}
+              history.filter(item => item && item.mediaId).map((item, idx) => {
+                const mediaSlug = item.mediaId.includes('_') ? item.mediaId.split('_').pop() : item.mediaId;
+                const linkUrl = `/${item.type === 'movie' ? 'movies' : 'episodes'}/${mediaSlug}`;
+                
+                return (
+                  <Link href={linkUrl} key={idx}>
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className={styles.historyCard}
+                    >
+                      <div className={styles.historyPoster}>
+                         {item.poster ? (
+                           <img src={`/api/proxy-image?url=${encodeURIComponent(item.poster)}`} alt={item.title} />
+                         ) : (
+                           <div className={styles.posterPlaceholder}><History size={24} /></div>
+                         )}
+                         <div className={styles.historyPlayOverlay}>
+                            <Play size={20} fill="currentColor" />
+                         </div>
+                         {item._isPending && !item._inCloud && (
+                           <div className={styles.pendingBadge} title="بانتظار المزامنة">
+                             <AlertCircle size={12} />
+                           </div>
+                         )}
                       </div>
-                      <div className={styles.progressBar}>
-                        <div 
-                          className={styles.progressFill} 
-                          style={{ width: `${formatPercent(item.currentTime, item.duration)}%` }} 
-                        />
+                      <div className={styles.cardInfo}>
+                        <h3>{item.title}</h3>
+                        <div className={styles.progressText}>
+                           توقفت عند {Math.floor(item.currentTime / 60)}:{(Math.floor(item.currentTime % 60)).toString().padStart(2, '0')}
+                        </div>
+                        <div className={styles.progressBar}>
+                          <div 
+                            className={styles.progressFill} 
+                            style={{ width: `${formatPercent(item.currentTime, item.duration)}%` }} 
+                          />
+                        </div>
                       </div>
-                    </div>
-                  </motion.div>
-                </Link>
-              ))
+                    </motion.div>
+                  </Link>
+                );
+              })
             }
             </div>
-          </>
+          </motion.div>
         )}
 
         {activeTab === 'favorites' && (
-          <div className={styles.grid}>
+          <motion.div 
+            key="favorites"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className={styles.grid}
+          >
              {favorites.length === 0 ? <p className={styles.empty}>قائمتك المفضلة فارغة</p> : 
               favorites.map((item, idx) => (
                 <div key={idx} className={styles.favCard}>
@@ -226,11 +256,17 @@ export default function ProfilePage() {
                 </div>
               ))
             }
-          </div>
+          </motion.div>
         )}
 
         {activeTab === 'settings' && (
-          <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className={styles.settingsSection}>
+          <motion.div 
+            key="settings"
+            initial={{ opacity: 0, scale: 0.98 }} 
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            className={styles.settingsSection}
+          >
             <div className={styles.settingsGrid}>
               <div className={styles.formCol}>
                 <div className={styles.inputGroup}>
@@ -285,6 +321,7 @@ export default function ProfilePage() {
             </div>
           </motion.div>
         )}
+        </AnimatePresence>
       </div>
     </div>
   );
