@@ -2,7 +2,6 @@ import { fetchMovieDetails, fetchCategoryPage } from '@/lib/scraper';
 import MovieClient from './MovieClient';
 import Link from 'next/link';
 import { AlertTriangle, ArrowRight } from 'lucide-react';
-import { GlobalCache } from '@/lib/server-cache';
 
 interface MoviePageProps {
   params: Promise<{ slug: string }>;
@@ -11,20 +10,12 @@ interface MoviePageProps {
 export default async function MovieDetailsPage({ params }: MoviePageProps) {
   const { slug } = await params;
   
-  // Try Cache
-  let movie = await GlobalCache.get(`movie_details/${slug}`, 86400); // 24h
-  
-  const [freshMovie, recent, topViews, topImdb] = await Promise.all([
-    !movie ? fetchMovieDetails(slug) : Promise.resolve(null),
+  const [movie, recent, topViews, topImdb] = await Promise.all([
+    fetchMovieDetails(slug),
     fetchCategoryPage('movies', 1),
     fetchCategoryPage('movies-top-views', 1),
     fetchCategoryPage('movies-top-imdb', 1)
   ]);
-
-  if (!movie && freshMovie) {
-    movie = freshMovie;
-    GlobalCache.set(`movie_details/${slug}`, movie);
-  }
 
   if (!movie) {
     return (

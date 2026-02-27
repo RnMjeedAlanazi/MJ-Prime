@@ -341,12 +341,6 @@ export async function fetchCategoryPage(category: string, page: number = 1): Pro
   const baseUrl = await getBaseUrl();
   const url = page === 1 ? `${baseUrl}/${path}` : `${baseUrl}/${path}/page/${page}`;
 
-  // Short term cache for categories (10 mins)
-  const cacheKey = `category_${category}_p${page}`;
-  const { GlobalCache } = await import('./server-cache');
-  const cached = await GlobalCache.get(cacheKey, 600);
-  if (cached) return cached;
-
   try {
     const { data } = await retryGet(url);
     const $ = cheerio.load(data);
@@ -357,9 +351,6 @@ export async function fetchCategoryPage(category: string, page: number = 1): Pro
       if (item) items.push(item);
     });
     
-    if (items.length > 0) {
-      await GlobalCache.set(cacheKey, items);
-    }
     return items;
   } catch (error) {
     console.error(`Failed to fetch ${category} page ${page}:`, error);
