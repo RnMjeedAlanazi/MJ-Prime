@@ -77,15 +77,27 @@ export async function GET(request: Request) {
 
   // === ULTRA-FAST PATH: Fetch & Multi-Regex ===
   try {
-    const res = await fetch(playUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Referer': baseDomain
-      },
-      next: { revalidate: 0 }
-    });
+    const fetchWithRetry = async (url: string, retries = 2) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          return await fetch(url, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+              'Referer': baseDomain,
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+              'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8',
+            },
+            next: { revalidate: 0 }
+          });
+        } catch (err: any) {
+          if (i === retries - 1) throw err;
+          await new Promise(r => setTimeout(r, 1000));
+        }
+      }
+    };
 
-    if (res.ok) {
+    const res = await fetchWithRetry(playUrl);
+    if (res && res.ok) {
       const html = await res.text();
       
       // Improved multi-source detection
@@ -179,7 +191,7 @@ export async function GET(request: Request) {
     page.goto(playUrl).catch(() => {});
     
     // Polling with shorter interval
-    for (let i = 0; i < 80; i++) { // 4 seconds max
+    for (let i = 0; i < 120; i++) { // 6 seconds max
       if (caughtStream) break;
       await new Promise(r => setTimeout(r, 50));
     }
@@ -187,8 +199,17 @@ export async function GET(request: Request) {
     if (!caughtStream) {
       // Last ditch effort: Scrape the DOM
       caughtStream = await page.evaluate(() => {
-        const el = document.querySelector('[data-url]') || document.querySelector('.hd_btn');
-        return el ? el.getAttribute('data-url') || (el as any).value : null;
+        const el = document.querySelector('[data-url]') || 
+                   document.querySelector('.hd_btn') || 
+                   document.querySelector('source') ||
+                   document.querySelector('video');
+        if (el) {
+          return el.getAttribute('data-url') || 
+                 el.getAttribute('src') || 
+                 (el as any).value || 
+                 (el as any).src;
+        }
+        return null;
       }).catch(() => null);
     }
 

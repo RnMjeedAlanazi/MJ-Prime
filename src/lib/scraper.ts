@@ -380,7 +380,10 @@ export async function fetchMovieDetails(slug: string): Promise<MovieDetails | nu
     const title = cleanMediaTitle(rawTitle);
     const story = $('.singleDesc p').text().trim();
     const poster = $('.posterImg img').attr('src') || $('.img-fluid').attr('src') || '';
-    const iframeSource = ($('iframe[src*="video_player"]').attr('src') || '').replace('.xyz', '.best');
+    let iframeSource = ($('iframe[src*="video_player"]').attr('src') || '').replace('.xyz', '.best');
+    if (iframeSource && !iframeSource.startsWith('http')) {
+      iframeSource = baseUrl.replace(/\/$/, '') + (iframeSource.startsWith('/') ? iframeSource : '/' + iframeSource);
+    }
     const genres: GenreItem[] = [];
     $('.catsSingle a, .singleInfoCats a, .col-xl-6:contains("تصنيف") a, .series-module__qYAgva__genre').each((_, el) => {
       const g = $(el).text().trim(); 
