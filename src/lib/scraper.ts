@@ -15,7 +15,7 @@ async function retryGet(url: string, maxRetries = 3): Promise<{ data: string }> 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); 
+      const timeoutId = setTimeout(() => controller.abort(), 6000); // Faster initial timeout
       
       const baseUrl = await getBaseUrl();
       const res = await fetch(url, {
@@ -24,14 +24,7 @@ async function retryGet(url: string, maxRetries = 3): Promise<{ data: string }> 
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
           'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8',
           'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
           'Referer': baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`,
-          'sec-ch-ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
-          'sec-ch-ua-mobile': '?0',
-          'sec-ch-ua-platform': '"Windows"',
-          'sec-fetch-dest': 'document',
-          'sec-fetch-mode': 'navigate',
-          'sec-fetch-site': 'cross-site',
           'Upgrade-Insecure-Requests': '1',
         },
         signal: controller.signal,
@@ -40,7 +33,6 @@ async function retryGet(url: string, maxRetries = 3): Promise<{ data: string }> 
       clearTimeout(timeoutId);
 
       if (!res.ok) {
-        console.error(`[scraper] Fetch failed for ${url}: ${res.status} ${res.statusText}`);
         if (RETRYABLE_STATUSES.includes(res.status)) {
             throw new Error(`Retryable status ${res.status}`);
         }
@@ -48,15 +40,15 @@ async function retryGet(url: string, maxRetries = 3): Promise<{ data: string }> 
       }
       const data = await res.text();
       return { data };
-    } catch (err: unknown) {
-      if (attempt < maxRetries) {
-        const wait = 1000 * attempt;
-        console.warn(`[scraper] Attempt ${attempt} failed for ${url}, retrying in ${wait}ms…`);
-        await new Promise(r => setTimeout(r, wait));
-        continue;
+      } catch (err: any) {
+        if (attempt < maxRetries) {
+          const wait = 500 * attempt;
+          console.warn(`[scraper] Attempt ${attempt} failed for ${url}, retrying in ${wait}ms…`);
+          await new Promise(r => setTimeout(r, wait));
+          continue;
+        }
+        throw err;
       }
-      throw err;
-    }
   }
   throw new Error('Max retries exceeded');
 }

@@ -21,6 +21,39 @@ export default function LoginPage() {
     setError('');
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      
+      // Get detailed login info
+      try {
+        // 1. Fetch IP Address
+        const ipRes = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipRes.json();
+        
+        // 2. Handle/Generate Device ID (stored in localStorage)
+        let deviceId = localStorage.getItem('revive_did');
+        if (!deviceId) {
+            deviceId = 'DID-' + Math.random().toString(36).substring(2, 11).toUpperCase();
+            localStorage.setItem('revive_did', deviceId);
+        }
+
+        // 3. Send detailed notification
+        fetch('/api/send-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            email: email, 
+            type: 'login',
+            details: {
+                ip: ipData.ip,
+                deviceId: deviceId,
+                platform: navigator.platform,
+                browser: navigator.userAgent.split(')')[0] + ')'
+            }
+          })
+        });
+      } catch (emailErr) {
+        console.error('Security email failed', emailErr);
+      }
+
       router.push('/');
     } catch (err: any) {
       setError('خطأ في البريد الإلكتروني أو كلمة المرور');

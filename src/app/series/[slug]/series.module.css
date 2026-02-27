@@ -513,3 +513,13 @@
     justify-content: center; 
   }
 }
+
+.epWatchedIcon {
+  color: var(--accent-cyan);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  left: 60px;
+  filter: drop-shadow(0 0 5px var(--glow-cyan));
+}

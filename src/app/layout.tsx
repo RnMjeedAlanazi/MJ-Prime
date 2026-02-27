@@ -25,16 +25,32 @@ export const viewport = {
 export const metadata: Metadata = {
   title: 'بوس الواوا - مشاهدة الأفلام والمسلسلات',
   description: 'شاهد أحدث الأفلام والمسلسلات والأنمي والدراما الآسيوية. بث مجاني بجودة عالية.',
+  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'black-translucent',
+    statusBarStyle: 'black',
     title: 'MJ Prime',
   },
+  icons: {
+    apple: [
+      { url: '/next.svg', sizes: '180x180', type: 'image/svg+xml' },
+      { url: '/next.svg', sizes: '152x152', type: 'image/svg+xml' },
+      { url: '/next.svg', sizes: '120x120', type: 'image/svg+xml' },
+    ],
+  }
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning data-scroll-behavior="smooth" className={`${ibmPlexArabic.variable} ${outfit.variable}`}>
+       <head>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" href="/next.svg" />
+        <link rel="preconnect" href="https://api.faselhd.best" />
+        <link rel="preconnect" href="https://vortex.faselhd.best" />
+        <link rel="dns-prefetch" href="https://api.faselhd.best" />
+      </head>
       <body suppressHydrationWarning>
         <AuthProvider>
           <TopProgressBar />

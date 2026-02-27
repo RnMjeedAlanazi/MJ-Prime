@@ -3,32 +3,57 @@ import { getBaseUrl } from '@/lib/config';
 
 export const runtime = 'edge';
 
-async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
+const playlistCache = new Map<string, { text: string; expiry: number }>();
+
+async function fetchWithRetry(url: string, userAgent: string, maxRetries = 2): Promise<Response> {
+  const urlObj = new URL(url);
+  
+  // High-Speed Origin Detection for scdns.io clusters
+  // This regex is more specific to the webNx.domain.tld pattern
+  let detectedOrigin = urlObj.origin;
+  const domainMatch = url.match(/(web\d+x\.[a-z0-9.-]+)/); // More robust regex for domain
+  if (domainMatch) {
+    detectedOrigin = `https://${domainMatch[1]}`;
+  }
+
+  const headers = {
+    'Referer': `${detectedOrigin}/`,
+    'Origin': detectedOrigin,
+    'User-Agent': userAgent,
+    'Accept': '*/*, application/vnd.apple.mpegurl',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Connection': 'keep-alive',
+    'Cache-Control': 'no-cache' // Added no-cache for fresh content
+  };
+  
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const controller = new AbortController();
+    // More aggressive timeout for master playlists (12s)
+    const timeoutId = setTimeout(() => controller.abort(), 12000); 
+
     try {
-      const baseUrl = await getBaseUrl();
-      // Use standard fetch without custom AbortSignal first for simplicity
-      const response = await fetch(url, {
-        headers: {
-          'Referer': `${baseUrl.replace(/\/$/, '')}/video_player`,
-          'Origin': baseUrl.replace(/\/$/, ''),
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-          'Accept': '*/*, application/vnd.apple.mpegurl',
-          'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8',
-        }
-      });
+      const response = await fetch(url, { 
+        headers: headers as any, 
+        signal: controller.signal,
+        priority: 'high' // Added priority hint
+      } as any);
+
+      clearTimeout(timeoutId);
+
       // If server returns error 5xx or 429, we should retry!
       if (!response.ok && (response.status >= 500 || response.status === 429)) {
          throw new Error(`HTTP Error: ${response.status}`);
       }
       return response;
-    } catch (err) {
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      // Simplified retry logic with fixed backoff
       if (attempt < maxRetries) {
-        console.warn(`[proxy-stream] attempt ${attempt} failed, retrying for ${url.substring(0, 50)}...`);
-        // Progressive backoff delay
-        await new Promise(r => setTimeout(r, 500 * attempt));
+        console.warn(`[proxy-stream] attempt ${attempt} failed for ${url.substring(0, 60)}... Error: ${err.message || 'Unknown Error'}. Retrying...`);
+        await new Promise(r => setTimeout(r, 400 * attempt)); // Fixed backoff
         continue;
       }
+      console.error(`[proxy-stream] Max retries reached for ${url.substring(0, 100)}. Error: ${err.message}`);
       throw err;
     }
   }
@@ -38,16 +63,29 @@ async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const url = searchParams.get('url');
+  const userAgent = request.headers.get('user-agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
 
   if (!url) {
     return new NextResponse('Missing url', { status: 400 });
   }
 
+  // Fast-path: Memory Cache Check
+  const cached = playlistCache.get(url);
+  if (cached && cached.expiry > Date.now()) {
+    return new NextResponse(cached.text, {
+      headers: {
+        'Content-Type': 'application/vnd.apple.mpegurl',
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'public, max-age=60',
+        'X-Cache': 'HIT'
+      },
+    });
+  }
+
   try {
-    const response = await fetchWithRetry(url);
+    const response = await fetchWithRetry(url, userAgent);
     
     if (!response.ok) {
-      console.error(`[proxy-stream] Remote fetch failed: ${response.status} for ${url.substring(0, 100)}`);
       return new NextResponse(`Remote error: ${response.status}`, { status: response.status });
     }
 
@@ -57,68 +95,56 @@ export async function GET(request: Request) {
                    url.split('?')[0].toLowerCase().endsWith('.m3u8');
 
     if (isM3U8) {
-      let text = await response.text();
-      let baseUrl = url.split('?')[0]; // strip search params for correct pathing
+      const text = await response.text();
+      const urlObj = new URL(url);
+      const rootDomain = urlObj.origin;
+      const urlSearch = urlObj.search;
+      
+      let baseUrl = url.split('?')[0];
       if (!baseUrl.endsWith('/')) {
          baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1);
       }
 
-      // Robust M3U8 rewriting
+      const proxyPath = '/api/proxy-stream?url=';
+
       const lines = text.split('\n').map(line => {
         const trimmed = line.trim();
-        if (!trimmed) return line;
+        if (!trimmed || trimmed.startsWith('#EXT-X-VERSION') || trimmed.startsWith('#EXT-X-MEDIA-SEQUENCE')) return line;
         
-        // If it's a metadata line, check for URI attributes (like for encryption keys or subtitles)
         if (trimmed.startsWith('#')) {
           if (trimmed.includes('URI=')) {
               return line.replace(/URI=["'](.*?)["']/g, (match, p1) => {
                  let absUrl = p1;
                  if (!p1.startsWith('http')) {
-                     if (p1.startsWith('/')) {
-                         const rootDomain = new URL(baseUrl).origin;
-                         absUrl = rootDomain + p1;
-                     } else {
-                         try {
-                             absUrl = new URL(p1, baseUrl).href;
-                         } catch(e) {
-                             absUrl = baseUrl + p1;
-                         }
-                     }
+                     absUrl = p1.startsWith('/') ? rootDomain + p1 : baseUrl + p1;
                  }
-                 return `URI="/api/proxy-stream?url=${encodeURIComponent(absUrl)}"`;
+                 return `URI="${proxyPath}${encodeURIComponent(absUrl)}"`;
               });
           }
           return line;
         }
         
-        // It's a URL (segment or sub-playlist)
         let absUrl = trimmed;
         if (!trimmed.startsWith('http')) {
-             if (trimmed.startsWith('/')) {
-                 const rootDomain = new URL(baseUrl).origin;
-                 absUrl = rootDomain + trimmed;
-             } else {
-                 try {
-                     absUrl = new URL(trimmed, baseUrl).href;
-                 } catch(e) {
-                     absUrl = baseUrl + trimmed;
-                 }
-             }
-
-             // If original URL had search params (like token) and the segment doesn't, append them
-             const originalUrlObj = new URL(url);
-             if (originalUrlObj.search && !absUrl.includes('?')) {
-                 absUrl += originalUrlObj.search;
+             absUrl = trimmed.startsWith('/') ? rootDomain + trimmed : baseUrl + trimmed;
+             if (urlSearch && !absUrl.includes('?')) {
+                 absUrl += urlSearch;
              }
         }
-        return `/api/proxy-stream?url=${encodeURIComponent(absUrl)}`;
+        return `${proxyPath}${encodeURIComponent(absUrl)}`;
       });
 
-      return new NextResponse(lines.join('\n'), {
+      const processedText = lines.join('\n');
+      
+      // Store in memory for other concurrent requests
+      playlistCache.set(url, { text: processedText, expiry: Date.now() + 60000 });
+
+      return new NextResponse(processedText, {
         headers: {
           'Content-Type': 'application/vnd.apple.mpegurl',
           'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'no-cache', // Don't cache playlists
+          'Cache-Control': 'public, max-age=60',
+          'X-Cache': 'MISS'
         },
       });
     }

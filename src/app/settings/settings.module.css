@@ -104,6 +104,54 @@
   text-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
 }
 
+.accountActions {
+  display: flex;
+  gap: 10px;
+}
+
+.statusMsg {
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.statusError {
+  background: rgba(255, 68, 68, 0.1);
+  color: #ff4444;
+  border: 1px solid rgba(255, 68, 68, 0.2);
+}
+
+.statusSuccess {
+  background: rgba(40, 167, 69, 0.1);
+  color: #28a745;
+  border: 1px solid rgba(40, 167, 69, 0.2);
+}
+
+.forgotPassBtn {
+  background: transparent;
+  border: none;
+  color: var(--accent-cyan);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-top: -5px;
+  text-align: right;
+  width: fit-content;
+}
+
+.forgotPassBtn:hover {
+  text-decoration: underline;
+}
+
 /* Plan Details Style */
 .planBox {
   display: flex;
@@ -146,6 +194,40 @@
   border-radius: 12px;
   border: 2px solid rgba(255,255,255,0.1);
   object-fit: cover;
+}
+
+.profileMetaInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pNameText {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.mainBadgeContainer {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: linear-gradient(135deg, #ffd700 0%, #ffae00 100%) !important;
+  color: #000 !important;
+  font-size: 11px !important;
+  padding: 3px 10px !important;
+  border-radius: 6px !important;
+  font-weight: 900 !important;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.5) !important;
+  text-transform: uppercase !important;
+  border: 1px solid #fff !important;
+  width: fit-content !important;
+  margin-top: 4px !important;
+}
+
+.lockIcon {
+  color: #a0a0a0;
+  margin-left: auto;
 }
 
 .profileName {
@@ -431,15 +513,58 @@
 }
 
 /* PIN UI Styles mirrored from ProfileSelector */
-.pinOverlay {
+/* Glass Modal Styles */
+.modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(3, 0, 20, 0.98);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
   z-index: 20000;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.modalContent {
+  width: 100%;
+  max-width: 420px;
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 28px;
+  padding: 35px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modalTitle {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+  text-align: center;
+  margin-bottom: 5px;
+}
+
+.modalSubtitle {
+  font-size: 14px;
+  color: #aaa;
+  text-align: center;
+  margin-bottom: 10px;
 }
 
 .pinContent {

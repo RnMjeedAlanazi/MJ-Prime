@@ -45,12 +45,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
 
   const fetchProfiles = async (uid: string) => {
-    const localDefault: Profile = { 
-      id: 'main', 
-      name: 'الأساسي', 
-      avatar: '/api/proxy-image?url=' + encodeURIComponent('https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png'),
-      settings: { autoplay: true }
-    };
     try {
       const dbRef = ref(db, `users/${uid}/profiles`);
       const snapshot = await get(dbRef);
@@ -72,8 +66,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setActiveProfileState(null);
       }
     } catch (e: any) {
-      console.warn('Firebase Access Denied or Error - No profiles loaded.');
-      setProfiles([]);
+      console.error('Error in fetchProfiles:', e);
+      setProfiles([]); 
       setActiveProfileState(null);
     }
   };

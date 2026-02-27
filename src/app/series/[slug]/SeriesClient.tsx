@@ -10,6 +10,8 @@ import { Play, PlayCircle, ArrowRight, Film, Star, Languages, Globe, Award, List
 import { saveUserView, toggleFavorite, isFavorite } from '@/lib/userProfile';
 import RecommendationRow from '@/app/components/RecommendationRow';
 import QualityBadge from '@/app/components/QualityBadge';
+import { ProgressTracker, WatchProgress } from '@/lib/progress';
+import { CheckCircle2 } from 'lucide-react';
 
 interface EpisodeItem { epTitle: string; epLink: string; }
 interface SeasonData {
@@ -27,6 +29,7 @@ export default function SeriesClient({ season, candidates }: { season: SeasonDat
   const [loading, setLoading] = useState(false);
   const [favorite, setFavorite] = useState(false);
   const [hasRedirected, setHasRedirected] = useState(false);
+  const [watchedData, setWatchedData] = useState<Record<string, WatchProgress>>({});
 
   // Auto-play the last watched episode silently without redirecting, keeping metadata safe
   useEffect(() => {
@@ -53,6 +56,13 @@ export default function SeriesClient({ season, candidates }: { season: SeasonDat
   useEffect(() => {
     saveUserView(season.title, 'series', season.genres, activeProfile?.id);
     setFavorite(isFavorite(season.title, activeProfile?.id));
+
+    // Load watch progress to show checkmarks
+    ProgressTracker.getAllProgress(activeProfile?.id).then(data => {
+      const map: Record<string, WatchProgress> = {};
+      data.forEach(p => { map[p.mediaId] = p; });
+      setWatchedData(map);
+    });
   }, [season.title, season.genres, activeProfile?.id]);
 
   const handleFavorite = () => {
@@ -118,7 +128,14 @@ export default function SeriesClient({ season, candidates }: { season: SeasonDat
       >
         <div className={styles.posterSide}>
           <div style={{ position: 'relative' }}>
-            {season.poster && <img src={proxyImg(season.poster)} alt={season.title} className={styles.poster} />}
+            {season.poster && (
+              <img 
+                src={proxyImg(season.poster)} 
+                alt={season.title} 
+                className={styles.poster} 
+                decoding="async"
+              />
+            )}
             {season.rating && (
               <div className="ratingBadgeOverlay">
                 <span className="imdbLogo">IMDb</span> {season.rating}
@@ -289,6 +306,17 @@ export default function SeriesClient({ season, candidates }: { season: SeasonDat
               >
                 <div className={styles.epNum}>{idx + 1}</div>
                 <div className={styles.epName}>{ep.epTitle}</div>
+                
+                {/* Watch indicator */}
+                {(() => {
+                   const pid = `${season.title}_${ep.epLink}`;
+                   const p = watchedData[pid];
+                   if (p && p.currentTime / p.duration > 0.9) {
+                     return <div className={styles.epWatchedIcon}><CheckCircle2 size={18} /></div>;
+                   }
+                   return null;
+                })()}
+
                 <div className={styles.epArrow}><PlayCircle size={22} /></div>
               </motion.button>
             ))}

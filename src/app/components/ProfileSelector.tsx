@@ -144,7 +144,7 @@ export default function ProfileSelector({ onSelect, noOverlay = false }: { onSel
   };
 
   const handleCreate = async () => {
-    if (!user || !newName.trim()) return;
+    if (!user || !newName.trim() || profiles.length >= 3) return;
     try {
       setLoading(true);
       const newId = 'profile_' + Date.now();
@@ -160,6 +160,19 @@ export default function ProfileSelector({ onSelect, noOverlay = false }: { onSel
         [newId]: newProfile
       });
       
+      // Send creation email
+      if (user.email) {
+        fetch('/api/send-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            email: user.email, 
+            type: 'create_profile',
+            details: { name: newName, avatar: selectedAvatar }
+          })
+        }).catch(e => console.error('Profile creation email failed', e));
+      }
+
       const isFirstProfile = profiles.length === 0;
       await refreshProfiles();
       
@@ -263,6 +276,9 @@ export default function ProfileSelector({ onSelect, noOverlay = false }: { onSel
                   <h1 className={styles.title}>
                     {isManaging ? 'إدارة البروفايلات' : 'من الذي يشاهد؟'}
                   </h1>
+                  {!isManaging && (
+                    <p className={styles.titleSubtitle}>يمكنك إنشاء حتى 3 بروفايلات فقط</p>
+                  )}
                   
                   <div className={styles.profilesGrid}>
                     {profiles.map((p) => (
@@ -310,7 +326,7 @@ export default function ProfileSelector({ onSelect, noOverlay = false }: { onSel
                       </div>
                     ))}
                     
-                    {profiles.length < 5 && (
+                    {profiles.length < 3 && (
                       <div 
                         className={styles.profileItem} 
                         onClick={() => {

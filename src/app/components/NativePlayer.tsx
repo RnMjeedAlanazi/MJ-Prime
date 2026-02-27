@@ -229,7 +229,20 @@ export default function NativePlayer({
     const video = videoRef.current;
 
     const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
+    const handlePause = () => {
+      setIsPlaying(false);
+      // Instant Save on Pause
+      if (videoRef.current && videoRef.current.duration > 0) {
+        ProgressTracker.saveLocal({
+          mediaId,
+          title,
+          type,
+          currentTime: videoRef.current.currentTime,
+          duration: videoRef.current.duration,
+          lastUpdated: Date.now()
+        }, activeProfile?.id);
+      }
+    };
     const handleTimeUpdate = () => {
       if (!videoRef.current) return;
       
@@ -322,15 +335,19 @@ export default function NativePlayer({
         enableWorker: true,
         lowLatencyMode: true,
         capLevelToPlayerSize: true, 
-        maxBufferLength: 60, 
-        maxMaxBufferLength: 1200,
+        maxBufferLength: 7200, // Buffer up to 2 hours of content in the background
+        maxMaxBufferLength: 10800,
+        backBufferLength: 600, // Keep 10 mins behind
         startLevel: -1, 
-        fragLoadingTimeOut: 30000, 
         manifestLoadingTimeOut: 20000,
-        fragLoadingMaxRetry: 5,
-        manifestLoadingMaxRetry: 5,
+        manifestLoadingMaxRetry: 8,
         levelLoadingTimeOut: 20000,
-        levelLoadingMaxRetry: 5
+        levelLoadingMaxRetry: 8,
+        fragLoadingTimeOut: 40000,
+        fragLoadingMaxRetry: 10,
+        enableSoftwareAES: true,
+        nudgeMaxRetry: 15,
+        nudgeOffset: 0.1
       });
       hlsRef.current = hls;
       hls.loadSource(proxiedUrl);
@@ -375,6 +392,21 @@ export default function NativePlayer({
 
           }
         }
+      });
+
+      // Update buffered bar while paused
+      hls.on(Hls.Events.FRAG_BUFFERED, () => {
+        if (!video.duration) return;
+        let mostRecentBuffer = 0;
+        for (let i = 0; i < video.buffered.length; i++) {
+           const end = video.buffered.end(i);
+           if (end > video.currentTime) {
+              mostRecentBuffer = end;
+              break;
+           }
+           mostRecentBuffer = end;
+        }
+        setBuffered((mostRecentBuffer / video.duration) * 100);
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       // Native HLS for iOS/Safari

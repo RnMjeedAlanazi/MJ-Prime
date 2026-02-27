@@ -1,0 +1,31 @@
+{
+  "name": "REvive Fasel HD",
+  "short_name": "MJ Prime",
+  "description": "Premium Streaming Service for Arabic Movies and Series",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#030014",
+  "theme_color": "#030014",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/next.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["entertainment", "video"],
+  "shortcuts": [
+    {
+      "name": "الرئيسية",
+      "url": "/",
+      "icons": [{ "src": "/next.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "المسلسلات",
+      "url": "/series",
+      "icons": [{ "src": "/next.svg", "sizes": "96x96" }]
+    }
+  ]
+}

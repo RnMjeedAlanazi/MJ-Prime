@@ -6,6 +6,7 @@ import Row from './components/Row';
 
 import HeroSlider from './components/HeroSlider';
 import RecommendationRow from './components/RecommendationRow';
+import ContinueWatching from './components/ContinueWatching';
 
 export const revalidate = 240; // Revalidate every 4 minutes
 
@@ -41,6 +42,9 @@ export default async function Home() {
       <HeroSlider items={heroItems} />
 
       <RecommendationRow candidates={uniqueCandidates} />
+
+      {/* NEW: Resume sessions */}
+      <ContinueWatching />
 
       <Row title="أحدث الحلقات"                  link="/category/recent-series"     items={recentSeries.slice(0, 15)}  />
       <Row title="المسلسلات الأكثر مشاهدة هذا الأسبوع"  link="/category/series-top-views"  items={topSeries.slice(0, 15)}    numbered />

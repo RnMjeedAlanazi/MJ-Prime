@@ -30,6 +30,14 @@ export default function RegisterPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, { displayName: name });
+      
+      // Send Welcome Email
+      fetch('/api/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, type: 'welcome' })
+      }).catch(e => console.error('Welcome email failed', e));
+
       router.push('/');
     } catch (err: any) {
       if (err.code === 'auth/email-already-in-use') {

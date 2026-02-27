@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import styles from './profiles.module.css';
-import { History, Heart, Play, Trash2, User, LogOut, Settings as SettingsIcon } from 'lucide-react';
+import { History, Heart, Play, Trash2, User, LogOut, Settings as SettingsIcon, X } from 'lucide-react';
 import { auth } from '@/lib/firebase';
 import { ProgressTracker, WatchProgress } from '@/lib/progress';
 import { getFavorites, toggleFavorite } from '@/lib/userProfile';
@@ -107,38 +107,45 @@ export default function ProfilePage() {
           </div>
         </div>
         <div className={styles.headerRight}>
-          <button onClick={handleLogout} className={styles.logoutBtn}>
-            <LogOut size={18} /> تسجيل الخروج
+          <button 
+            onClick={() => setActiveTab(activeTab === 'settings' ? 'history' : 'settings')} 
+            className={activeTab === 'settings' ? `${styles.settingsBtn} ${styles.activeHeaderBtn}` : styles.settingsBtn}
+          >
+            {activeTab === 'settings' ? (
+              <>
+                <X size={18} /> إغلاق تعديل البروفايل
+              </>
+            ) : (
+              <>
+                <Pencil size={18} /> تعديل البروفايل
+              </>
+            )}
           </button>
         </div>
       </header>
 
-      <div className={styles.tabs}>
-        <button 
-          className={activeTab === 'history' ? styles.activeTab : ''} 
-          onClick={() => setActiveTab('history')}
-        >
-          <History size={18} /> سجل المتابعة
-        </button>
-        <button 
-          className={activeTab === 'favorites' ? styles.activeTab : ''} 
-          onClick={() => setActiveTab('favorites')}
-        >
-          <Heart size={18} /> المفضلة
-        </button>
-        <button 
-          className={activeTab === 'settings' ? styles.activeTab : ''} 
-          onClick={() => setActiveTab('settings')}
-        >
-          <SettingsIcon size={18} /> تعديل البروفايل
-        </button>
-      </div>
+      {activeTab !== 'settings' && (
+        <div className={styles.tabs}>
+          <button 
+            className={activeTab === 'history' ? styles.activeTab : ''} 
+            onClick={() => setActiveTab('history')}
+          >
+            <History size={18} /> سجل المتابعة
+          </button>
+          <button 
+            className={activeTab === 'favorites' ? styles.activeTab : ''} 
+            onClick={() => setActiveTab('favorites')}
+          >
+            <Heart size={18} /> المفضلة
+          </button>
+        </div>
+      )}
 
       <div className={styles.content}>
         {activeTab === 'history' && (
           <div className={styles.grid}>
             {history.length === 0 ? <p className={styles.empty}>لا يوجد سجل متابعة حالياً</p> : 
-              history.map((item, idx) => (
+              history.filter(item => item && item.mediaId).map((item, idx) => (
                 <Link href={`/${item.type === 'movie' ? 'movies' : 'episodes'}/${item.mediaId.split('_').pop()}`} key={idx}>
                   <motion.div 
                     initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}

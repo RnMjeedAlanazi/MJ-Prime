@@ -3,16 +3,29 @@ import puppeteer from 'puppeteer';
 import { getBaseUrl } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 45; // Increased slightly
+export const maxDuration = 45;
 
 const cache = new Map<string, { streams: {quality: string, url: string}[], expiry: number }>();
-
 let globalBrowser: any = null;
+let activePages = 0;
+let lastUsed = Date.now();
+const MAX_CONCURRENT_PAGES = 5; // Hard limit to prevent server crash
+
+// Background worker to clean up memory
+if (typeof setInterval !== 'undefined') {
+  setInterval(() => {
+    if (globalBrowser && Date.now() - lastUsed > 300000 && activePages === 0) {
+        console.log("Closing idle browser to save memory...");
+        globalBrowser.close().catch(() => {});
+        globalBrowser = null;
+    }
+  }, 60000);
+}
 
 async function getBrowser() {
+  lastUsed = Date.now();
   if (globalBrowser && globalBrowser.connected) return globalBrowser;
   
-  const isProduction = process.env.NODE_ENV === 'production';
   try {
     globalBrowser = await puppeteer.launch({
       args: [
@@ -23,11 +36,11 @@ async function getBrowser() {
         "--disable-features=IsolateOrigins,site-per-process",
         "--disable-extensions",
         "--disable-gpu",
+        "--disable-infobars",
+        "--window-position=-2100,-2100",
+        "--window-size=1,1"
       ],
-      headless: "new",
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || (
-        isProduction ? '/usr/bin/google-chrome-stable' : undefined
-      )
+      headless: "new"
     } as any);
     return globalBrowser;
   } catch (err) {
@@ -35,6 +48,7 @@ async function getBrowser() {
     throw err;
   }
 }
+
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -47,13 +61,12 @@ export async function GET(request: Request) {
   if (cached && cached.expiry > Date.now()) return NextResponse.json({ streams: cached.streams });
 
   let baseDomain = domainParam || await getBaseUrl();
-  // Ensure we use the latest working domain
   if (baseDomain.includes('faselhd')) {
       baseDomain = baseDomain.replace(/\.([a-z0-9]+)$/, '.best');
   }
   const playUrl = `${baseDomain.replace(/\/$/, '')}/video_player?player_token=${token}`;
 
-  // === FAST PATH: Fetch & Regex Extract ===
+  // === ULTRA-FAST PATH: Fetch & Multi-Regex ===
   try {
     const res = await fetch(playUrl, {
       headers: {
@@ -66,124 +79,120 @@ export async function GET(request: Request) {
     if (res.ok) {
       const html = await res.text();
       
-      // Look for hidden buttons or data attributes
-      let m3u8Url: string | null = null;
-      let quality = 'Auto';
+      // Improved multi-source detection
+      const patterns = [
+        /data-url=["']([^"']+\.m3u8[^"']*)["']/gi,
+        /(?:file|url|src)["']?\s*:\s*["']([^"']+\.m3u8[^"']*)["']/gi,
+        /["'](https?:\/\/[^"']+\.m3u8[^"']*)["']/gi,
+        /source\s+src=["']([^"']+\.m3u8[^"']*)["']/gi
+      ];
 
-      const dataUrlMatch = html.match(/data-url=["']([^"']+\.m3u8[^"']*)["']/i);
-      if (dataUrlMatch) {
-        m3u8Url = dataUrlMatch[1];
-      } else {
-        // Look for typical player setup scripts
-        const fileMatch = html.match(/(?:file|url|src)["']?\s*:\s*["']([^"']+\.m3u8[^"']*)["']/i);
-        if (fileMatch) {
-          m3u8Url = fileMatch[1];
-        }
+      const allUrls = new Set<string>();
+      for (const pattern of patterns) {
+        const matches = [...html.matchAll(pattern)];
+        matches.forEach(m => allUrls.add(m[1]));
       }
 
-      if (m3u8Url) {
-        if (m3u8Url.includes('1080')) quality = '1080p';
-        else if (m3u8Url.includes('720')) quality = '720p';
-        else if (m3u8Url.includes('480')) quality = '480p';
-
-        // Additional streams if available in the same HTML block
-        const allMatches = [...html.matchAll(/(?:file|url|src|data-url)["']?\s*:\s*["']([^"']+\.(?:m3u8|mp4)[^"']*)["']/gi)];
-        const uniqueUrls = Array.from(new Set(allMatches.map(m => m[1])));
-        
-        let streams = uniqueUrls.map(url => {
+      if (allUrls.size > 0) {
+        let streams = Array.from(allUrls).map(url => {
           let q = 'Auto';
           if (url.includes('1080')) q = '1080p';
           else if (url.includes('720')) q = '720p';
           else if (url.includes('480')) q = '480p';
+          else if (url.includes('360')) q = '360p';
           return { quality: q, url };
         });
 
-        if (streams.length === 0) {
-            streams = [{ quality, url: m3u8Url }];
-        } else {
-            // Deduplicate streams by quality (prefer first found if duplicates)
-            const map = new Map<string, any>();
-            streams.forEach(s => {
-                if (!map.has(s.quality)) {
-                    map.set(s.quality, s);
-                }
-            });
-            streams = Array.from(map.values());
-        }
+        // Deduplicate and prioritize
+        const map = new Map<string, any>();
+        streams.forEach(s => {
+          if (!map.has(s.quality) || (s.url.length < map.get(s.quality).url.length)) {
+             map.set(s.quality, s);
+          }
+        });
+        
+        streams = Array.from(map.values()).sort((a, b) => parseInt(b.quality) - parseInt(a.quality));
 
-        console.log("Fast path extraction successful!");
-        cache.set(token, { streams, expiry: Date.now() + 1800000 });
+        console.log("Ultra-fast path successful!");
+        cache.set(token, { streams, expiry: Date.now() + 3600000 }); // 1 hour cache
         return NextResponse.json({ streams });
-      } else {
-         console.log("Fast path failed to find m3u8, attempting puppeteer...");
       }
     }
   } catch (e) {
-    console.error("Fast path error:", e);
+    console.error("Fast path failed:", e);
   }
 
-  // === SLOW PATH: Puppeteer Extraction ===
+  // === SLOW PATH: Optimization Puppeteer (Turbo Mode) ===
+  if (activePages >= MAX_CONCURRENT_PAGES) {
+      return NextResponse.json({ 
+        streams: [], 
+        error: 'The server is currently processing many requests. Please wait a few seconds and try again.' 
+      }, { status: 429 });
+  }
+
   let page: any = null;
   let caughtStream: string | null = null;
   let caughtQuality: string = 'Auto';
 
   try {
+    activePages++;
     const browser = await getBrowser();
     page = await browser.newPage();
     
+    // Minimal footprint
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
-    await page.setViewport({ width: 1280, height: 720 });
-    
     await page.setRequestInterception(true);
+
     page.on('request', (req: any) => {
       const type = req.resourceType();
       const url = req.url();
       
+      // Catch stream immediately
       if (url.includes('.m3u8') || url.includes('.mp4') || url.includes('playlist.m3u8')) {
         caughtStream = url;
         if (url.includes('1080')) caughtQuality = '1080p';
         else if (url.includes('720')) caughtQuality = '720p';
         else if (url.includes('480')) caughtQuality = '480p';
         req.continue();
-      } else if (['image', 'font', 'media'].includes(type) || url.includes('analytics') || url.includes('google') || url.includes('ads')) {
+      } 
+      // Aggressive Blocking
+      else if (['image', 'font', 'stylesheet', 'media', 'other'].includes(type) || 
+               url.includes('google') || url.includes('analytics') || url.includes('ads') || 
+               url.includes('facebook') || url.includes('twitter')) {
         req.abort();
       } else {
         req.continue();
       }
     });
 
-    try {
-        await page.goto(playUrl, { waitUntil: 'domcontentloaded', timeout: 8000 });
-    } catch (e) {
-        console.log("Initial goto failed, waiting for stream specifically...");
-    }
+    // We don't wait for load, we wait for 'request'
+    page.goto(playUrl).catch(() => {});
     
-    let retries = 0;
-    const maxRetries = 120; // 6 seconds total
-    while (retries < maxRetries && !caughtStream) {
-        await new Promise(r => setTimeout(r, 50));
-        retries++;
+    // Polling with shorter interval
+    for (let i = 0; i < 80; i++) { // 4 seconds max
+      if (caughtStream) break;
+      await new Promise(r => setTimeout(r, 50));
     }
 
     if (!caughtStream) {
-        caughtStream = await page.evaluate(() => {
-           const btn = document.querySelector('.hd_btn') || document.querySelector('[data-url]');
-           return btn ? btn.getAttribute('data-url') : null;
-        }).catch(() => null);
+      // Last ditch effort: Scrape the DOM
+      caughtStream = await page.evaluate(() => {
+        const el = document.querySelector('[data-url]') || document.querySelector('.hd_btn');
+        return el ? el.getAttribute('data-url') || (el as any).value : null;
+      }).catch(() => null);
     }
 
     if (caughtStream) {
-      const result = [{ quality: caughtQuality, url: caughtStream }];
-      cache.set(token, { streams: result, expiry: Date.now() + 1800000 });
-      return NextResponse.json({ streams: result });
+      const streams = [{ quality: caughtQuality, url: caughtStream }];
+      cache.set(token, { streams, expiry: Date.now() + 3600000 });
+      return NextResponse.json({ streams });
     }
   } catch (err) {
-    console.error('Extraction Error:', err);
+    console.error('Turbo Scraper Error:', err);
   } finally {
-    if (page) {
-      await page.close().catch(() => {});
-    }
+    activePages = Math.max(0, activePages - 1);
+    if (page) await page.close().catch(() => {});
   }
 
-  return NextResponse.json({ streams: [], error: 'Extraction failed or timed out. Please try again.' }, { status: 200 });
+  return NextResponse.json({ streams: [], error: 'Could not extract streams. Please refresh or try another source.' });
 }

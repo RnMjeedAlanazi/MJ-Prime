@@ -49,7 +49,13 @@ export default function Row({ title, link, items, numbered }: {
                     <span className="imdbLogo">IMDb</span> {item.rating}
                   </div>
                 )}
-                <img alt={item.title} className={styles.cardImg} loading="lazy" src={proxyImg(item.poster)} />
+                <img 
+                  alt={item.title} 
+                  className={styles.cardImg} 
+                  loading="lazy" 
+                  decoding="async"
+                  src={proxyImg(item.poster)} 
+                />
                 {item.views && (
                   <span className={styles.cardViews}>
                     <Eye size={12} /> {item.views}

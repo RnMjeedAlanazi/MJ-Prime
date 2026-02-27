@@ -57,6 +57,14 @@ html {
   --font-outfit: var(--font-outfit);
 }
 
+html {
+  overflow-x: hidden;
+  width: 100%;
+  -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
+  overscroll-behavior-y: none;
+}
+
 body {
   background-color: var(--bg-deep);
   color: var(--text-primary);
@@ -68,13 +76,9 @@ body {
   position: relative;
   -webkit-overflow-scrolling: touch;
   padding-bottom: env(safe-area-inset-bottom);
+  padding-top: env(safe-area-inset-top);
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  width: 100%;
-}
-
-html {
-  overflow-x: hidden;
   width: 100%;
 }
 

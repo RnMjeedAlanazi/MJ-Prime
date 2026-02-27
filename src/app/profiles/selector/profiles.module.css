@@ -1,12 +1,13 @@
 
 .container {
   min-height: 100vh;
+  min-height: 100dvh;
   background: radial-gradient(circle at center, #1a1a2e 0%, #030014 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px;
+  padding: env(safe-area-inset-top) 20px env(safe-area-inset-bottom);
   font-family: var(--font-almarai), sans-serif;
   text-align: center;
 }

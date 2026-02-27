@@ -9,6 +9,7 @@
   justify-content: center;
   font-family: var(--font-almarai), sans-serif;
   direction: rtl;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 .pageWrapper {
@@ -18,24 +19,36 @@
   font-family: var(--font-almarai), sans-serif;
   direction: rtl;
   width: 100%;
+  min-height: 100vh;
+  padding: env(safe-area-inset-top) 20px env(safe-area-inset-bottom);
 }
 
 .container {
   text-align: center;
+  width: 100%;
+  max-width: 1200px;
 }
 
 .title {
   font-size: 56px;
   font-weight: 400;
-  margin-bottom: 50px;
+  margin-bottom: 20px;
   color: #fff;
   letter-spacing: -1px;
+}
+
+.titleSubtitle {
+  font-size: 18px;
+  color: #808080;
+  margin-bottom: 50px;
+  font-weight: 500;
 }
 
 .profilesGrid {
   display: flex;
   gap: 40px;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
 .profileItem {

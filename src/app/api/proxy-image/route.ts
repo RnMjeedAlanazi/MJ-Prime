@@ -43,7 +43,9 @@ export async function GET(request: Request) {
       } catch (e: any) {
         attempts++;
         if (attempts === maxAttempts) throw e;
-        await new Promise(r => setTimeout(r, 500));
+        // Wait a bit before retrying, especially on connection resets
+        const waitTime = (e.code === 'ECONNRESET' || e.cause?.code === 'ECONNRESET') ? 1500 : 500;
+        await new Promise(r => setTimeout(r, waitTime));
       }
     }
 

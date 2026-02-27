@@ -60,9 +60,12 @@ export default function MovieClient({ movie, candidates }: { movie: MovieDetails
       >
         <div className={styles.posterSide}>
           <div style={{ position: 'relative' }}>
-            {movie.poster && (
-              <img src={proxyImg(movie.poster)} alt={movie.title} className={styles.poster} />
-            )}
+              <img 
+                src={proxyImg(movie.poster)} 
+                alt={movie.title} 
+                className={styles.poster} 
+                decoding="async"
+              />
             {movie.rating && (
               <div className="ratingBadgeOverlay">
                 <span className="imdbLogo">IMDb</span> {movie.rating}
@@ -134,20 +137,19 @@ export default function MovieClient({ movie, candidates }: { movie: MovieDetails
       <AnimatePresence>
         {showPlayer && movie.iframeSource && (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: 30 }} 
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 30 }}
+            initial={{ opacity: 0, y: 30 }} 
+            animate={{ opacity: 1, y: 0 }}
             className={styles.playerSection}
           >
-            <div className={styles.playerContainer}>
-              <div className={styles.playerHeader}>
-                <h2 className={styles.playerTitle}>
-                  <Play size={24} fill="currentColor" color="var(--accent-cyan)" /> مشاهدة: {movie.title}
-                </h2>
-                <button className={styles.closeBtn} onClick={() => setShowPlayer(false)}>
-                  <X size={18} /> إغلاق
-                </button>
-              </div>
+            <div className={styles.playerHeader}>
+              <h2 className={styles.playerTitle}>
+                <Film size={24} color="var(--accent-cyan)" /> مشاهدة: {movie.title}
+              </h2>
+              <button className={styles.closeBtn} onClick={() => setShowPlayer(false)}>
+                <X size={18} /> إغلاق المشغل
+              </button>
+            </div>
+            <div className={styles.playerBox}>
               <NativePlayer 
                 iframeSource={movie.iframeSource} 
                 mediaId={movie.title}
