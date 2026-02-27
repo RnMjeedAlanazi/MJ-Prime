@@ -143,7 +143,7 @@ export default function NativePlayer({
           return;
         }
 
-        const url = `/api/extract-video?token=${encodeURIComponent(token!)}${domain ? `&domain=${encodeURIComponent(domain)}` : ''}`;
+        const url = `/api/extract-video?token=${encodeURIComponent(token!)}${domain ? `&domain=${encodeURIComponent(domain)}` : ''}${mediaId ? `&mediaId=${encodeURIComponent(mediaId)}` : ''}`;
         const res = await fetch(url);
         
         if (!res.ok) {

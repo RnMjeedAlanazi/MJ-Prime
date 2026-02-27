@@ -55,17 +55,22 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const token = searchParams.get('token');
   const domainParam = searchParams.get('domain');
+  const mediaId = searchParams.get('mediaId'); // Path/Season/Ep identifier
   
   if (!token) return NextResponse.json({ streams: [], error: 'Missing token' }, { status: 400 });
 
-  const cached = cache.get(token);
+  // Sanitize mediaId for Firebase (remove forbidden characters)
+  const safeMediaId = mediaId ? mediaId.replace(/\./g, '_').replace(/[\$#\[\]]/g, '_') : null;
+  const storageKey = safeMediaId || token;
+
+  const cached = cache.get(storageKey);
   if (cached && cached.expiry > Date.now()) return NextResponse.json({ streams: cached.streams });
 
   // Check Persistent Cache (Firebase)
-  const persistent = await GlobalCache.get(`streams/${token}`, 172800); // 48 hours for streams
+  const persistent = await GlobalCache.get(`streams/${storageKey}`, 172800); // 48 hours for streams
   if (persistent) {
     // Also update memory cache
-    cache.set(token, { streams: persistent, expiry: Date.now() + 3600000 });
+    cache.set(storageKey, { streams: persistent, expiry: Date.now() + 3600000 });
     return NextResponse.json({ streams: persistent });
   }
 
@@ -135,8 +140,8 @@ export async function GET(request: Request) {
         streams = Array.from(map.values()).sort((a, b) => parseInt(b.quality) - parseInt(a.quality));
 
         console.log("Ultra-fast path successful!");
-        cache.set(token, { streams, expiry: Date.now() + 3600000 }); // 1 hour memory
-        GlobalCache.set(`streams/${token}`, streams); // 48h persistent
+        cache.set(storageKey, { streams, expiry: Date.now() + 3600000 }); // 1 hour memory
+        GlobalCache.set(`streams/${storageKey}`, streams); // 48h persistent
         return NextResponse.json({ streams });
       }
     }
@@ -215,8 +220,8 @@ export async function GET(request: Request) {
 
     if (caughtStream) {
       const streams = [{ quality: caughtQuality, url: caughtStream }];
-      cache.set(token, { streams, expiry: Date.now() + 3600000 });
-      GlobalCache.set(`streams/${token}`, streams);
+      cache.set(storageKey, { streams, expiry: Date.now() + 3600000 });
+      GlobalCache.set(`streams/${storageKey}`, streams);
       return NextResponse.json({ streams });
     }
   } catch (err) {
