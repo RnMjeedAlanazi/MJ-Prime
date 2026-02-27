@@ -1,9 +1,10 @@
 
-import { db, auth, ref, get, update } from './firebase';
+import { db, auth, ref, get, update, remove } from './firebase';
 
 export interface WatchProgress {
   mediaId: string; // Slug or unique ID
   title: string;
+  poster?: string;
   type: 'movie' | 'episode';
   currentTime: number;
   duration: number;
@@ -149,5 +150,28 @@ export const ProgressTracker = {
     }
     
     return Object.values(results);
+  },
+
+  async clearAllProgress(profileId?: string) {
+    const user = auth.currentUser;
+    const finalProfileId = profileId || 'main';
+    const storageKey = user ? `watch_progress_${user.uid}_${finalProfileId}` : 'watch_progress_v3';
+    const counterKey = user ? `sync_counter_${user.uid}_${finalProfileId}` : null;
+
+    // 1. Clear LocalStorage
+    localStorage.removeItem(storageKey);
+    if (counterKey) localStorage.removeItem(counterKey);
+
+    // 2. Clear Firebase if user is logged in
+    if (user) {
+      const dbRef = ref(db, `users/${user.uid}/profiles/${finalProfileId}/progress`);
+      try {
+        await remove(dbRef);
+        console.log(`[ProgressSync] History cleared from cloud.`);
+      } catch (e) {
+        console.error('[ProgressSync] Failed to clear history from cloud:', e);
+        throw e;
+      }
+    }
   }
 };

@@ -47,6 +47,13 @@ export default function ContinueWatching() {
         </div>
       </div>
 
+      {progressList.some(item => item._isPending && !item._inCloud) && (
+        <div className={styles.syncWarning}>
+          <AlertCircle size={16} />
+          <span>لم يتم الحفظ في السحاب بعد، تحتاج لمشاهدة 3 حلقات أو فيلمين إضافيين للمزامنة التلقائية.</span>
+        </div>
+      )}
+
       <div className={styles.scrollWrap}>
         <div className={styles.scroll} ref={scrollRef}>
           {progressList.map((item, idx) => {
@@ -57,11 +64,10 @@ export default function ContinueWatching() {
              // We'll try to find the link from title or composite.
              let link = '#';
              if (item.type === 'movie') {
-               link = `/movies/${item.mediaId.replace(/\s+/g, '-').toLowerCase()}`;
+               link = `/movies/${item.mediaId.split('_').pop()}`;
              } else {
-               // For episodes, we store epLink in the mediaId suffix usually.
                const parts = item.mediaId.split('_');
-               if (parts.length > 1) link = parts[parts.length-1];
+               if (parts.length > 1) link = `/episodes/${parts[parts.length - 1]}`;
              }
 
              const progressPercent = (item.currentTime / item.duration) * 100;
@@ -69,6 +75,13 @@ export default function ContinueWatching() {
              return (
                <Link key={idx} href={link} className={styles.continueCard}>
                   <div className={styles.continuePosterWrapper}>
+                    {item.poster && (
+                      <img 
+                        src={proxyImg(item.poster)} 
+                        alt={item.title} 
+                        className={styles.continueImg}
+                      />
+                    )}
                     {/* Cloud Pending Warning Icon */}
                     {item._isPending && !item._inCloud && (
                       <div className={styles.cloudPendingBadge} title="بانتظار المزامنة مع السحاب (شاهد أكثر للمزامنة)">

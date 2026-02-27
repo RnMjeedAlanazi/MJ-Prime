@@ -179,6 +179,7 @@ export default function EpisodeClient({ episode, currentSlug, candidates }: { ep
               iframeSource={iframeSource} 
               mediaId={`${episode.title}_${activeEpLink}`}
               title={`${episode.title}`}
+              poster={episode.poster}
               type="episode"
               nextEpisode={(() => {
                 if (!episode.episodes) return undefined;

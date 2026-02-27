@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import styles from './profiles.module.css';
-import { History, Heart, Play, Trash2, User, LogOut, Settings as SettingsIcon, X } from 'lucide-react';
+import { History, Heart, Play, Trash2, User, LogOut, Settings as SettingsIcon, X, AlertCircle } from 'lucide-react';
 import { auth } from '@/lib/firebase';
 import { ProgressTracker, WatchProgress } from '@/lib/progress';
 import { getFavorites, toggleFavorite } from '@/lib/userProfile';
@@ -81,6 +81,24 @@ export default function ProfilePage() {
     }
   };
 
+  const handleDeleteHistory = async () => {
+    if (!activeProfile) return;
+    if (!confirm('هل أنت متأكد من حذف سجل المتابعة بالكامل؟ لا يمكن التراجع عن هذه الخطوة.')) return;
+    
+    setSaving(true);
+    try {
+      await ProgressTracker.clearAllProgress(activeProfile.id);
+      setHistory([]);
+      setMessage('تم مسح سجل المتابعة بنجاح');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (e) {
+      console.error(e);
+      alert('فشل في حذف السجل');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleLogout = () => auth.signOut();
 
   const handleRemoveFavorite = (item: any) => {
@@ -143,7 +161,21 @@ export default function ProfilePage() {
 
       <div className={styles.content}>
         {activeTab === 'history' && (
-          <div className={styles.grid}>
+          <>
+            <div className={styles.tabHeader}>
+              {history.some(item => item._isPending && !item._inCloud) && (
+                <div className={styles.syncWarning}>
+                  <AlertCircle size={16} />
+                  <span>هذه البيانات لم تُحفظ في السحاب بعد، شاهد 3 حلقات أو فيلمين إضافيين للمزامنة التلقائية.</span>
+                </div>
+              )}
+              {history.length > 0 && (
+                <button onClick={handleDeleteHistory} className={styles.clearHistoryInline}>
+                   <Trash2 size={14} /> مسح سجل المشاهدة
+                </button>
+              )}
+            </div>
+            <div className={styles.grid}>
             {history.length === 0 ? <p className={styles.empty}>لا يوجد سجل متابعة حالياً</p> : 
               history.filter(item => item && item.mediaId).map((item, idx) => (
                 <Link href={`/${item.type === 'movie' ? 'movies' : 'episodes'}/${item.mediaId.split('_').pop()}`} key={idx}>
@@ -152,6 +184,12 @@ export default function ProfilePage() {
                     transition={{ delay: idx * 0.05 }}
                     className={styles.historyCard}
                   >
+                    <div className={styles.historyPoster}>
+                       {item.poster && <img src={`/api/proxy-image?url=${encodeURIComponent(item.poster)}`} alt={item.title} />}
+                       <div className={styles.historyPlayOverlay}>
+                          <Play size={20} fill="currentColor" />
+                       </div>
+                    </div>
                     <div className={styles.cardInfo}>
                       <h3>{item.title}</h3>
                       <div className={styles.progressText}>
@@ -164,12 +202,12 @@ export default function ProfilePage() {
                         />
                       </div>
                     </div>
-                    <div className={styles.playIcon}><Play size={20} fill="currentColor" /></div>
                   </motion.div>
                 </Link>
               ))
             }
-          </div>
+            </div>
+          </>
         )}
 
         {activeTab === 'favorites' && (
@@ -219,6 +257,13 @@ export default function ProfilePage() {
                     {saving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
                   </button>
                   {message && <span className={styles.saveMsg}>{message}</span>}
+                </div>
+
+                <div className={styles.dangerZone}>
+                   <label>إجراءات خطيرة</label>
+                   <button onClick={handleDeleteHistory} disabled={saving} className={styles.deleteHistoryBtn}>
+                      <Trash2 size={16} /> مسح سجل المشاهدة
+                   </button>
                 </div>
               </div>
 

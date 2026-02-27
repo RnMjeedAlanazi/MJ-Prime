@@ -34,12 +34,14 @@ export default function NativePlayer({
   nextEpisode,
   mediaId,
   title,
+  poster,
   type
 }: { 
   iframeSource: string;
   nextEpisode?: { title: string; onPlay: () => void };
   mediaId: string;
   title: string;
+  poster?: string;
   type: 'movie' | 'episode';
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -200,6 +202,7 @@ export default function NativePlayer({
         ProgressTracker.saveLocal({
           mediaId,
           title,
+          poster,
           type,
           currentTime: videoRef.current.currentTime,
           duration: videoRef.current.duration,
@@ -236,6 +239,7 @@ export default function NativePlayer({
         ProgressTracker.saveLocal({
           mediaId,
           title,
+          poster,
           type,
           currentTime: videoRef.current.currentTime,
           duration: videoRef.current.duration,
@@ -282,6 +286,7 @@ export default function NativePlayer({
         ProgressTracker.saveLocal({
           mediaId,
           title,
+          poster,
           type,
           currentTime: time,
           duration: dur,

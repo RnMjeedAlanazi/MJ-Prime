@@ -154,6 +154,7 @@ export default function MovieClient({ movie, candidates }: { movie: MovieDetails
                 iframeSource={movie.iframeSource} 
                 mediaId={movie.title}
                 title={movie.title}
+                poster={movie.poster}
                 type="movie"
               />
             </div>
